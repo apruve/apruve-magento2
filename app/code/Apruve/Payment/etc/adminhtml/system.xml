@@ -21,6 +21,11 @@
                     <label>Mode</label>
                     <source_model>Apruve\Payment\Model\Config\Source\Mode</source_model>
                 </field>
+                <field id="webhook_url" translate="label" type="text" sortOrder="9" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Webhook URL</label>
+                    <frontend_class>webhook-url</frontend_class>
+                	<frontend_model>Apruve\Payment\Block\Adminhtml\Webhook</frontend_model>
+                </field>                
                 <field id="sort_order" translate="label" type="text" sortOrder="9" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Sort Order</label>
                     <frontend_class>validate-number</frontend_class>

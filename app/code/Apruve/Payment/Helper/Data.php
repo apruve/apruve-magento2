@@ -19,9 +19,18 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      * @param Magento\Sales\Model\Service\OrderService $orderService,            
      */
     protected $paymentHelper;
-    public function __construct(\Magento\Framework\App\Helper\Context $context, \Magento\Store\Model\StoreManagerInterface $storeManager, \Magento\Catalog\Model\Product $product, \Magento\Framework\Data\Form\FormKey $formkey, \Magento\Quote\Model\QuoteFactory $quote, \Magento\Quote\Model\QuoteManagement $quoteManagement, \Magento\Customer\Model\CustomerFactory $customerFactory, \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository, \Magento\Sales\Model\Service\OrderService $orderService, 
-
-    \Magento\Payment\Helper\Data $paymentHelper) {
+    public function __construct(
+        \Magento\Framework\App\Helper\Context $context,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Catalog\Model\Product $product,
+        \Magento\Framework\Data\Form\FormKey $formkey,
+        \Magento\Quote\Model\QuoteFactory $quote,
+        \Magento\Quote\Model\QuoteManagement $quoteManagement,
+        \Magento\Customer\Model\CustomerFactory $customerFactory,
+        \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository,
+        \Magento\Sales\Model\Service\OrderService $orderService, 
+        \Magento\Payment\Helper\Data $paymentHelper
+    ){
         $this->_storeManager = $storeManager;
         $this->_product = $product;
         $this->_formkey = $formkey;
@@ -156,6 +165,30 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     
     public function getApiKey() {
         return $this->_method->getConfigData('api_key');
+    }
+    
+    public function getWebhookUrl() {
+        $url = $this->_storeManager->getStore()->getBaseUrl();
+        $data = $url . 'apruve/updateOrderStatus?' . $this->getWebhookHash();
+        return $data;
+    }
+    
+    public function getWebhookHash() {
+        $apiKey = $this->_method->getConfigData('api_key');
+        $merchantKey = $this->_method->getConfigData('merchant_id');
+        
+        $data = $apiKey.$merchantKey;
+        $hash = hash('sha256', $data);
+        
+        return $hash;
+    }
+    
+    public function validateWebhookHash($data) {
+        return $data == $this->getWebhookHash();
+    }
+
+    public function getStoreUrl() {
+        return $this->_storeManager->getStore()->getBaseUrl();
     }
     
     protected function error() {

@@ -16,6 +16,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     protected $_canCapture          = true;
     protected $_canCapturePartial   = false;
     protected $_canVoid             = true;
+    protected $_canRefund           = true;
+    protected $_canRefundInvoicePartial = true;
     protected $_isInitializeNeeded  = false;
     protected $_isOffline           = false;
     protected $_canUseInternal      = false;
@@ -87,7 +89,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $data['merchant_invoice_id'] = $invoiceId;
         $data['due_at'] = '';
         $data['invoice_items'] = array();
-        $data['issue_on_create'] = 'true';
+        $data['issue_on_create'] = 'false';
 
         $invoiceItem = array();
         foreach ($invoice->getAllItems() as $item) {
@@ -133,9 +135,36 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
         return parent::cancel($payment);
     }
+    
+    public function refund(\Magento\Payment\Model\InfoInterface $payment, $amount)
+    {
+        if (!$this->canRefund()) {
+            throw new \Magento\Framework\Exception\LocalizedException(__('The refund action is not available.'));
+        }
+    
+        $invoice = $payment->getCreditmemo()->getInvoice();
+        $invoiceId = $invoice->getTransactionId();
+        if (!$invoiceId) {
+            throw new \Magento\Framework\Exception\LocalizedException(__('The refund action is not available.'));
+        }
+        
+        $refundAmount = $invoice->getGrandTotal() - $amount;
+        $data = array();
+        $data['amount_cents'] = $refundAmount * 100;
+        
+        $this->_apruve('', $invoiceId, json_encode($data), 'invoices', 'PUT');
+        return $this;
+    }
 
-    protected function _apruve($action, $token, $data = '') {
-        $url = sprintf("https://%s.apruve.com/api/v4/orders/%s/%s", $this->getConfigData('mode'), $token, $action);
+    /** Apruve API Manipulation method */
+    protected function _apruve(
+            $action,
+            $token,
+            $data = '',
+            $object = 'orders',
+            $requestType = 'POST'
+    ){
+        $url = sprintf("https://%s.apruve.com/api/v4/%s/%s/%s", $this->getConfigData('mode'), $object, $token, $action);
         $curl = curl_init();
 
         curl_setopt_array($curl, array(
@@ -145,7 +174,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             CURLOPT_MAXREDIRS => 10,
             CURLOPT_TIMEOUT => 30,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_CUSTOMREQUEST => $requestType,
             CURLOPT_POSTFIELDS => $data,
             CURLOPT_HTTPHEADER => array(
                 'accept: application/json',
@@ -155,10 +184,14 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         ));
 
         $response = curl_exec($curl);
-
         $httpStatus = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $error = curl_error($curl);
         curl_close($curl);
-
+        
+        if ($error) {
+            throw new \Magento\Framework\Exception\LocalizedException(__($error));
+        }
+        
         if ($httpStatus != 404) {
             return json_decode($response);
         }

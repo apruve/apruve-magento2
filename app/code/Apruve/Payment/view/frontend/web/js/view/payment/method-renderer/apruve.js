@@ -10,6 +10,7 @@ define(
             defaults: {
                 template: 'Apruve_Payment/payment/apruve'
             },
+            
             getData: function() {
                 return {
                     'method': this.item.method,
@@ -19,6 +20,11 @@ define(
                 };
             },
 
+            initialize: function () {
+            	this._super();
+            	Apruve.load();
+            },
+            
             getMailingAddress: function() {
                 return window.checkoutConfig.payment.checkmo.mailingAddress;
             },

@@ -1,6 +1,6 @@
 <?php
 
-namespace Apruve\Payment\Controller\Index;
+namespace Apruve\Payment\Controller\updateOrderStatus;
 
 ini_set('display_startup_errors',1);
 ini_set('display_errors',1);
@@ -145,9 +145,18 @@ class Index extends \Magento\Framework\App\Action\Action
     }
     
     protected function _validate() {
+        if ($this->_validateWebhookUrl()) {
+            return false;
+        }
+        
         $hash = $this->_getApruveHeader();
         $data = $this->_getRawData();
         
         return $hash == hash('sha256', $data);
+    }
+    
+    protected function _validateWebhookUrl() {
+        $hash = $this->_request->getServer('QUERY_STRING');
+        return $this->helper->validateWebhookHash($hash);	
     }
 }

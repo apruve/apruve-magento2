@@ -31,8 +31,8 @@ class CustomConfigProvider implements ConfigProviderInterface
                     'merchant_id' => $this->_getMerchantId(),
                     'order' => $this->_getOrder(),
                     'js_endpoint' => $this->_getJSEndpoint(),
-                    'secure_hash' => $this->_getSecureHash(),
-                    'hash_reload' => $this->storeManager->getStore()->getUrl('apruve/hash/index')
+                    'secure_hash' => '',
+                    'hash_reload' => $this->storeManager->getStore()->getUrl('apruve/data/index')
                 ]
             ]
         ];
@@ -85,20 +85,17 @@ class CustomConfigProvider implements ConfigProviderInterface
     protected function _getOrderData() {
         $order = array();
         $quote = $this->_getQuote();
+        $quote->reserveOrderId();
         $totals = $quote->getTotals();
         
-        //\Zend_Debug::dump($quote->getShippingAddress()->debug()); exit;
         $order['merchant_id'] = $this->_getMerchantId();
-        //$order['merchant_order_id'] = 'ORDER1234';
+        $order['merchant_order_id'] = $quote->getReservedOrderId();
         $order['amount_cents'] = $totals['grand_total']->getValue() * 100;
         $order['currency'] = 'USD';
         $order['tax_cents'] = $totals['tax']->getValue() * 100;
         $order['shipping_cents'] = $quote->getShippingAddress()->getShippingAmount() * 100;
-        //$order['expire_at'] = '2017-10-20T14:36:44';
         $order['line_items'] = $this->_getOrderItems($quote);
-        //$order['accepts_payment_terms'] = '';
         $order['finalize_on_create'] = 'false';
-        //$order['invoice_on_create'] = '';
 
         return $order;
     }
@@ -106,16 +103,14 @@ class CustomConfigProvider implements ConfigProviderInterface
     protected function _getOrderItems($quote) {
         $items = array();
         
-        foreach ($quote->getAllItems() as $k => $item) {
+        foreach ($quote->getAllVisibleItems() as $k => $item) {
             $items[$k]['title'] = $item['name'];
             $items[$k]['amount_cents'] = $item['row_total'] * 100;
             $items[$k]['price_ea_cents'] = $item['price'] * 100;
             $items[$k]['quantity'] = $item['qty'];
             $items[$k]['description'] = $item['name'];
             $items[$k]['sku'] = $item['sku'];
-//    		$items[$k]['merchant_notes'] = '';
             $items[$k]['variant_info'] = '';
-//    		$items[$k]['vendor'] = '';
             $items[$k]['view_product_url'] = $this->catalogProductHelper->getProductUrl($item['product_id']);
         }
 
