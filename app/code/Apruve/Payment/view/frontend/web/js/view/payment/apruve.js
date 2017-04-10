@@ -24,21 +24,21 @@ define([
         });
     }
     
-	var initialize = function() {
-		require([s], 
-	        function(a) {
-		        var merchantId = window.checkoutConfig.payment.apruve.merchant_id;
-		        var order = JSON.parse(window.checkoutConfig.payment.apruve.order);
-		        var secureHash = window.checkoutConfig.payment.apruve.secure_hash;
-		        
-		        apruve.setOrder(order, secureHash);
-		        apruve.registerApruveCallback(apruve.APRUVE_COMPLETE_EVENT, function (orderId) {
-		            $('#apruve-order-id').val(orderId)
-		            $('.apruve-checkout').addClass('visible');
-		        });
-		        
-		    	preparePONumber();
-		});
+    var initialize = function() {
+        $.getScript(s, function() {
+            var merchantId = window.checkoutConfig.payment.apruve.merchant_id;
+            var order = JSON.parse(window.checkoutConfig.payment.apruve.order);
+            var secureHash = window.checkoutConfig.payment.apruve.secure_hash;
+            
+            apruve.setOrder(order, secureHash);
+            apruve.registerApruveCallback(apruve.APRUVE_COMPLETE_EVENT, function (orderId) {
+                $('#apruve-order-id').val(orderId)
+                $('.apruve-checkout').addClass('visible');
+            });
+            
+            $('.loading-mask').hide();
+            preparePONumber();
+        });
     }
     
 	var preparePONumber = function() {

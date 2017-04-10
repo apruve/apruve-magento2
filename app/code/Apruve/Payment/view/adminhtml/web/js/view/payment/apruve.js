@@ -64,7 +64,7 @@ define([
                 jQuery('#apruve-order-id').val(orderId)
             });
 
-            console.log(apruve.errors);
+//            console.log(apruve.errors);
         };
     };
 

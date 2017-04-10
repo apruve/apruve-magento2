@@ -95,7 +95,7 @@ class CustomConfigProvider implements ConfigProviderInterface
         $order['tax_cents'] = $totals['tax']->getValue() * 100;
         $order['shipping_cents'] = $quote->getShippingAddress()->getShippingAmount() * 100;
         $order['line_items'] = $this->_getOrderItems($quote);
-        $order['finalize_on_create'] = 'false';
+        //$order['finalize_on_create'] = 'false';
 
         return $order;
     }

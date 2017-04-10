@@ -5,6 +5,7 @@ namespace Apruve\Payment\Model;
 class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 {
     const CODE = 'apruve';
+    const DISCOUNT = 'Discount';
 
     const AUTHORIZE_ACTION = 'finalize';
     const CAPTURE_ACTION = 'invoices';
@@ -62,6 +63,13 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         }
         
         $payment->setTransactionId($token)->setIsTransactionClosed(0);
+        
+        // If Reserved Order ID is not correct
+        $order = $payment->getOrder();
+        if($response->merchant_order_id != $order->getIncrementId()); {
+            $this->_updateMerchantID($token, $order->getIncrementId());
+        }
+        
     }
     
     public function capture(\Magento\Payment\Model\InfoInterface $payment, $amount) {
@@ -88,13 +96,22 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $data['merchant_notes'] = '';
         $data['merchant_invoice_id'] = $invoiceId;
         $data['due_at'] = '';
-        $data['invoice_items'] = array();
-        $data['issue_on_create'] = 'false';
+        $data['invoice_items'] = [];
+        $data['issue_on_create'] = 'true';
+        
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $product = $objectManager->get('Magento\Catalog\Model\Product');
+        $helper = $objectManager->get('\Apruve\Payment\Helper\Data');
+            
+        foreach ($invoice->getItems() as $item) {
+            if ($item->getOrderItem()->getParentItem()) {
+                continue;
+            }
+            
+            $product->clearInstance();
+            $product->load($item->getProductId());
 
-        $invoiceItem = array();
-        foreach ($invoice->getAllItems() as $item) {
-            $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-            $product = $objectManager->get('Magento\Catalog\Model\Product')->load($item->getProductId());
+            $invoiceItem = array();
             
             $invoiceItem['price_ea_cents'] = $item->getData('price') * 100;
             $invoiceItem['quantity'] = $item->getData('qty');
@@ -109,6 +126,25 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             $invoiceItem['view_product_url'] = $product->getProductUrl();
 
             $data['invoice_items'][] = $invoiceItem;
+        }
+
+        /**Add Discount Item*/
+        $discount = $order->getDiscountAmount();
+        if ($discount < 0) {
+            $discountItem = [];
+            $discountItem['price_ea_cents'] = (int)$discount * 100;
+            $discountItem['quantity'] = 1;
+            $discountItem['price_total_cents'] = (int)$discount * 100;
+            $discountItem['currency'] = $invoice->getData('order_currency_code');
+            $discountItem['title'] = self::DISCOUNT;
+            $discountItem['merchant_notes'] = '';
+            $discountItem['description'] = self::DISCOUNT;
+            $discountItem['sku'] = self::DISCOUNT;
+            $discountItem['variant_info'] = '';
+            $discountItem['vendor'] = '';
+            $discountItem['view_product_url'] = $helper->getStoreUrl();
+            
+            $data['invoice_items'][] = $discountItem;
         }
 
         $response = $this->_apruve(self::CAPTURE_ACTION, $token, json_encode($data));
@@ -204,5 +240,16 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->_configProvider = $objectManager->create('Apruve\Payment\Model\CustomConfigProvider');
         
         return $this->_configProvider;
+    }
+    
+    protected function _updateMerchantID($token, $orderId){
+        $action = '';
+        $data = [];
+        $data['merchant_order_id'] = $orderId;
+        $object = 'orders';
+        $requestType = 'PUT';
+                            
+        $response = $this->_apruve($action, $token, json_encode($data), $object, $requestType);
+        return $response;
     }
 }

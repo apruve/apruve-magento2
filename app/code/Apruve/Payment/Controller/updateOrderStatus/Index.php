@@ -146,7 +146,7 @@ class Index extends \Magento\Framework\App\Action\Action
     
     protected function _validate() {
         if ($this->_validateWebhookUrl()) {
-            return false;
+            return true;
         }
         
         $hash = $this->_getApruveHeader();

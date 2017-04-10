@@ -6,15 +6,19 @@ use Magento\Framework\Event\ObserverInterface;
 class Observer implements ObserverInterface
 {   
     const CODE = 'apruve';
+    const DISCOUNT = 'Discount';
     const SHIPPING_PARTIAL  = 'partial';
     const SHIPPING_COMPLETE = 'fulfilled';
 
     protected $_method;
+    protected $_helper;
     
     public function __construct(
-        \Magento\Payment\Helper\Data $paymentHelper
+        \Magento\Payment\Helper\Data $paymentHelper,
+        \Apruve\Payment\Helper\Data $helper
     ) {
         $this->_method = $paymentHelper->getMethodInstance(self::CODE);
+        $this->_helper = $helper;
     }
     
     public function execute(\Magento\Framework\Event\Observer $observer) {
@@ -44,19 +48,19 @@ class Observer implements ObserverInterface
         
         $data = array();
         $data['invoice_id'] = $this->_getInvoiceId($order);
-        $data['amount_cents'] = $amount * 100;
-        $data['tax_cents'] = $tax * 100;
+        $data['amount_cents'] = $order->getGrandTotal() * 100;
+        $data['tax_cents'] = $order->getTaxAmount() * 100;
         $data['shipping_cents'] = $order->getShippingAmount() * 100;
         $data['currency'] = $order->getData('base_currency_code');
-        $data['shipper'] = $order->getCustomerFirstname() . ' ' . $order->getCustomerLastname();
+        $data['shipper'] = $track ? $track->getTitle() : '';
         $data['tracking_number'] = $track ? $track->getTrackNumber() : '';
         $data['shipped_at'] = date(DATE_ISO8601, strtotime($shipment->getCreatedAt()));
         $data['delivered_at'] = '';
-        $data['merchant_notes'] = $track ? $track->getTitle() : '';
+        $data['merchant_notes'] = $shipment->getCustomerNote();
         $data['status'] = $this->_getShipmentStatus($shipment);
         $data['merchant_shipment_id'] = $shipment->getIncrementId();
         $data['shipment_items'] = $this->_getShipmentItems($shipment);
-        
+
         $response = $this->_shipment($token, json_encode($data));
         if (!isset($response->id)) {
             throw new \Magento\Framework\Validator\Exception(__('Shipment error.'));
@@ -84,7 +88,7 @@ class Observer implements ObserverInterface
             $shipmentItem['price_ea_cents'] = $item->getPrice() * 100;
             $shipmentItem['quantity'] = $item->getQty();
             $shipmentItem['price_total_cents'] = $item->getPrice() * $item->getQty() * 100;
-            $shipmentItem['currency'] = $shipment->getOrder()->getData('order_currency_code');;
+            $shipmentItem['currency'] = $shipment->getOrder()->getData('order_currency_code');
             $shipmentItem['title'] = $product->getName();
             $shipmentItem['merchant_notes'] = '';
             $shipmentItem['description'] = $product->getMetaDescription();
@@ -94,6 +98,25 @@ class Observer implements ObserverInterface
             $shipmentItem['view_product_url'] = $product->getProductUrl();
 
             $data[] = $shipmentItem;
+        }
+        
+        /**Add Discount Item*/
+        $discount = $shipment->getOrder()->getDiscountAmount();
+        if ($discount < 0) {
+            $discountItem = [];
+            $discountItem['price_ea_cents'] = (int)$discount * 100;
+            $discountItem['quantity'] = 1;
+            $discountItem['price_total_cents'] = (int)$discount * 100;
+            $discountItem['currency'] = $shipment->getOrder()->getData('order_currency_code');
+            $discountItem['title'] = self::DISCOUNT;
+            $discountItem['merchant_notes'] = '';
+            $discountItem['description'] = self::DISCOUNT;
+            $discountItem['sku'] = self::DISCOUNT;
+            $discountItem['variant_info'] = '';
+            $discountItem['vendor'] = '';
+            $discountItem['view_product_url'] = $this->_helper->getStoreUrl();
+            
+            $data[] = $discountItem;
         }
         
         return $data;

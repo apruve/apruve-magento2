@@ -1,2 +1,9 @@
 .apruve-checkout { visibility: hidden; }
 .apruve-checkout.visible { visibility: visible; }
+.payment-method-content { position: relative; }
+.apruve-loading-mask, .apruve-loading-mask * { position: absolute; }
+.apruve-loading-mask .loader {
+    width: 100%;
+    text-align: center;
+}
+.apruve-loading-mask .loader > img { position: relative; }
