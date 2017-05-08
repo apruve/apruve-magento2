@@ -159,21 +159,20 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         return $this;
     }
    
-    public function cancel(\Magento\Payment\Model\InfoInterface $payment)
-    {
+    public function cancel(\Magento\Payment\Model\InfoInterface $payment) {
         $data = $payment->getAdditionalInformation();
-        $token = $data['aid'];
-        $response = $this->_apruve(self::CANCEL_ACTION, $token);
-
-        if (!$response) {
-            throw new \Magento\Framework\Validator\Exception(__('Order cancel error.'));
+        if ($data && $data['aid']) {
+            $token = $data['aid'];
+            try {
+                $response = $this->_apruve(self::CANCEL_ACTION, $token);
+            } catch (\Exception $e) {
+            }
         }
 
         return parent::cancel($payment);
     }
     
-    public function refund(\Magento\Payment\Model\InfoInterface $payment, $amount)
-    {
+    public function refund(\Magento\Payment\Model\InfoInterface $payment, $amount) {
         if (!$this->canRefund()) {
             throw new \Magento\Framework\Exception\LocalizedException(__('The refund action is not available.'));
         }

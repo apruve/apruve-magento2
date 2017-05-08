@@ -2,10 +2,6 @@
 
 namespace Apruve\Payment\Controller\updateOrderStatus;
 
-ini_set('display_startup_errors',1);
-ini_set('display_errors',1);
-error_reporting(-1);
-
 class Index extends \Magento\Framework\App\Action\Action
 {
     protected $order;
@@ -71,6 +67,7 @@ class Index extends \Magento\Framework\App\Action\Action
 
     protected function _cancelOrder($data) {
         $transactionId = $data->entity->id;
+
         $this->payments->addAttributeToFilter('last_trans_id', $transactionId);
         if (!$this->payments->getSize()) {
             return;
@@ -140,7 +137,7 @@ class Index extends \Magento\Framework\App\Action\Action
     }
     
     protected function _getData() {
-        $data = $this->_getRawData();
+        $data = trim($this->_getRawData());
         return json_decode($data);
     }
     

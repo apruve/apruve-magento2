@@ -12,6 +12,9 @@ class Observer implements ObserverInterface
 
     protected $_method;
     protected $_helper;
+    protected $_order;
+    protected $_shipment;
+    protected $_firstShipment;
     
     public function __construct(
         \Magento\Payment\Helper\Data $paymentHelper,
@@ -22,53 +25,70 @@ class Observer implements ObserverInterface
     }
     
     public function execute(\Magento\Framework\Event\Observer $observer) {
-        $shipment = $observer->getEvent()->getShipment();
-        $order = $shipment->getOrder();
-        if($order->getPayment()->getMethod() != self::CODE) {
+        $this->_shipment = $observer->getEvent()->getShipment();
+        $this->_order = $this->_shipment->getOrder();
+        
+        if ($this->_order->getShipmentsCollection()->getSize() <= 1) {
+            $this->_firstShipment = 1;
+        } else {
+            $this->_firstShipment = 0;
+        }
+        
+        
+        if($this->_order->getPayment()->getMethod() != self::CODE) {
             return;
         }
         
         /**Validate*/
-        if (!($order->getInvoiceCollection()->getSize())) {
+        if (!($this->_order->getInvoiceCollection()->getSize())) {
            throw new \Magento\Framework\Validator\Exception(__('Please create invoice before shipping.'));
         }
         
         /**Create Shipment*/
-        $invoice = $order->getInvoiceCollection()->getFirstItem();
+        $invoice = $this->_order->getInvoiceCollection()->getFirstItem();
         $token = $invoice->getTransactionId();
-        $tracks = $shipment->getAllTracks();
+        $tracks = $this->_shipment->getAllTracks();
         $track = end($tracks);
         $amount = 0;
         $tax = 0;
 
-        foreach ($shipment->getAllItems() as $item) {
+        foreach ($this->_shipment->getAllItems() as $item) {
             $amount += $item->getPrice();
             $tax += ($item->getPriceInclTax() - $item->getPrice()); 
         }
         
         $data = array();
-        $data['invoice_id'] = $this->_getInvoiceId($order);
-        $data['amount_cents'] = $order->getGrandTotal() * 100;
-        $data['tax_cents'] = $order->getTaxAmount() * 100;
-        $data['shipping_cents'] = $order->getShippingAmount() * 100;
-        $data['currency'] = $order->getData('base_currency_code');
+        
+        // First shipment holds complete amounts of tax_cents and shipping_cents
+        if ($this->_firstShipment) {
+            $data['tax_cents'] = $this->_order->getTaxAmount() * 100;
+            $data['shipping_cents'] = $this->_order->getShippingAmount() * 100;
+        } else {
+            $data['tax_cents'] = 0;
+            $data['shipping_cents'] = 0;            
+        }
+        
+        $data['invoice_id'] = $this->_getInvoiceId($this->_order);
+        $data['amount_cents'] = $this->_getPartialShipmentAmount() * 100;
+        $data['currency'] = $this->_order->getData('base_currency_code');
         $data['shipper'] = $track ? $track->getTitle() : '';
         $data['tracking_number'] = $track ? $track->getTrackNumber() : '';
-        $data['shipped_at'] = date(DATE_ISO8601, strtotime($shipment->getCreatedAt()));
+        $data['shipped_at'] = date(DATE_ISO8601, strtotime($this->_shipment->getCreatedAt()));
         $data['delivered_at'] = '';
-        $data['merchant_notes'] = $shipment->getCustomerNote();
-        $data['status'] = $this->_getShipmentStatus($shipment);
-        $data['merchant_shipment_id'] = $shipment->getIncrementId();
-        $data['shipment_items'] = $this->_getShipmentItems($shipment);
-
+        $data['merchant_notes'] = $this->_shipment->getCustomerNote();
+        $data['status'] = $this->_getShipmentStatus();
+        $data['merchant_shipment_id'] = $this->_shipment->getIncrementId();
+        $data['shipment_items'] = $this->_getShipmentItems($this->_shipment);
+        
         $response = $this->_shipment($token, json_encode($data));
         if (!isset($response->id)) {
-            throw new \Magento\Framework\Validator\Exception(__('Shipment error.'));
-        } 
+            $errorMessage = isset($response->errors) ? $response->errors[0]->title : 'Error Creating Shipment';
+            throw new \Magento\Framework\Validator\Exception(__($errorMessage));
+        }
     }
 
-    protected function _getInvoiceId($order) {
-        $invoices = $order->getInvoiceCollection();
+    protected function _getInvoiceId() {
+        $invoices = $this->_order->getInvoiceCollection();
         if ($invoices->getSize() < 1) {
             throw new \Magento\Framework\Validator\Exception(__('Please Invoice Order Before Shipping.'));
         }
@@ -77,10 +97,10 @@ class Observer implements ObserverInterface
         return $invoice->getTransactionId(); 
     }
     
-    protected function _getShipmentItems($shipment) {
+    protected function _getShipmentItems() {
         $data = array();
         
-        $items = $shipment->getAllItems();
+        $items = $this->_shipment->getAllItems();
         foreach ($items as $item) {
             $product = $item->getOrderItem()->getProduct();
             $shipmentItem = array();
@@ -88,7 +108,7 @@ class Observer implements ObserverInterface
             $shipmentItem['price_ea_cents'] = $item->getPrice() * 100;
             $shipmentItem['quantity'] = $item->getQty();
             $shipmentItem['price_total_cents'] = $item->getPrice() * $item->getQty() * 100;
-            $shipmentItem['currency'] = $shipment->getOrder()->getData('order_currency_code');
+            $shipmentItem['currency'] = $this->_shipment->getOrder()->getData('order_currency_code');
             $shipmentItem['title'] = $product->getName();
             $shipmentItem['merchant_notes'] = '';
             $shipmentItem['description'] = $product->getMetaDescription();
@@ -101,13 +121,13 @@ class Observer implements ObserverInterface
         }
         
         /**Add Discount Item*/
-        $discount = $shipment->getOrder()->getDiscountAmount();
-        if ($discount < 0) {
+        $discount = $this->_shipment->getOrder()->getDiscountAmount();
+        if ($discount < 0 && $this->_firstShipment) {
             $discountItem = [];
             $discountItem['price_ea_cents'] = (int)$discount * 100;
             $discountItem['quantity'] = 1;
             $discountItem['price_total_cents'] = (int)$discount * 100;
-            $discountItem['currency'] = $shipment->getOrder()->getData('order_currency_code');
+            $discountItem['currency'] = $this->_shipment->getOrder()->getData('order_currency_code');
             $discountItem['title'] = self::DISCOUNT;
             $discountItem['merchant_notes'] = '';
             $discountItem['description'] = self::DISCOUNT;
@@ -122,17 +142,30 @@ class Observer implements ObserverInterface
         return $data;
     }
     
-    protected function _getShipmentStatus($shipment) {
-        $order = $shipment->getOrder();
-
-        $qtyOrdered = $order->getTotalQtyOrdered();
-        $qtyShipped = $shipment->getTotalQty();
+    protected function _getShipmentStatus() {
+        $qtyOrdered = $this->_order->getTotalQtyOrdered();
+        $qtyShipped = $this->_shipment->getTotalQty();
         
         if ($qtyOrdered > $qtyShipped) {
             return self::SHIPPING_PARTIAL;
         }
         
         return self::SHIPPING_COMPLETE;
+    }
+    
+    protected function _getPartialShipmentAmount() {
+        $totalsAmount = $this->_order->getGrandTotal() - $this->_order->getSubtotal();
+        $amount = 0;
+
+        foreach ($this->_shipment->getAllItems() as $item) {
+            $amount += $item->getPrice() * $item->getQty();
+        }
+        
+        if ($this->_firstShipment) {
+            return $amount + $totalsAmount;
+        }
+        
+        return $amount;
     }
     
     protected function _shipment($token, $data = '') {

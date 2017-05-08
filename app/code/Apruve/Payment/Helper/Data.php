@@ -111,17 +111,13 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         }
         
         $quote = $this->quote->create(); // Create object of quote
-        $quote->setStore($store); // set store for which you create quote
-        
-        // if you have allready buyer id then you can load customer directly
+        $quote->setStore($store); // Set proper store
+
         $customer = $this->customerRepository->getById($customer->getEntityId());
         $quote->setCurrency();
         $quote->assignCustomer($customer); // Assign quote to customer
 
-        //\Zend_Debug::dump($data); exit;
-        // add items in quote
         foreach ($data['entity']->order_items as $item) {
-            //\Zend_Debug::dump($item); exit;
             $product = $this->_product->loadByAttribute('sku', $item->sku);
             $product->setPrice($item->price_ea_cents);
             $quote->addProduct($product, intval($item->quantity));
@@ -132,7 +128,6 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         $quote->getShippingAddress()->addData($data['shipping_address']);
         
         // Collect Rates and Set Shipping & Payment Method
-        
         $shippingAddress = $quote->getShippingAddress();
         $shippingAddress->setCollectShippingRates(true)->collectShippingRates()->setShippingMethod('freeshipping_freeshipping'); // shipping method
         $quote->setPaymentMethod(self::CODE); // payment method
