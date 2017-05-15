@@ -50,8 +50,8 @@ class Index extends \Magento\Framework\App\Action\Action
             //Add Discount item
             $discountItem = [];
             $discountItem['title'] = self::DISCOUNT;
-            $discountItem['amount_cents'] = (int)$discount * -100;
-            $discountItem['price_ea_cents'] = (int)$discount * -100;
+            $discountItem['amount_cents'] = (int)($discount * -100);
+            $discountItem['price_ea_cents'] = (int)($discount * -100);
             $discountItem['quantity'] = 1;
             $discountItem['description'] = self::DISCOUNT;
             $discountItem['sku'] = self::DISCOUNT;

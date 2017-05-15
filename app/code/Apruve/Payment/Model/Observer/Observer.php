@@ -124,9 +124,9 @@ class Observer implements ObserverInterface
         $discount = $this->_shipment->getOrder()->getDiscountAmount();
         if ($discount < 0 && $this->_firstShipment) {
             $discountItem = [];
-            $discountItem['price_ea_cents'] = (int)$discount * 100;
+            $discountItem['price_ea_cents'] = (int)($discount * 100);
             $discountItem['quantity'] = 1;
-            $discountItem['price_total_cents'] = (int)$discount * 100;
+            $discountItem['price_total_cents'] = (int)($discount * 100);
             $discountItem['currency'] = $this->_shipment->getOrder()->getData('order_currency_code');
             $discountItem['title'] = self::DISCOUNT;
             $discountItem['merchant_notes'] = '';

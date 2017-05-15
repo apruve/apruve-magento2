@@ -132,9 +132,9 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $discount = $order->getDiscountAmount();
         if ($discount < 0) {
             $discountItem = [];
-            $discountItem['price_ea_cents'] = (int)$discount * 100;
+            $discountItem['price_ea_cents'] = (int)($discount * 100);
             $discountItem['quantity'] = 1;
-            $discountItem['price_total_cents'] = (int)$discount * 100;
+            $discountItem['price_total_cents'] = (int)($discount * 100);
             $discountItem['currency'] = $invoice->getData('order_currency_code');
             $discountItem['title'] = self::DISCOUNT;
             $discountItem['merchant_notes'] = '';
