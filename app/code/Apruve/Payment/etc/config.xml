@@ -4,10 +4,12 @@
         <payment>
             <apruve>
                 <active>1</active>
-                <payment_action>authorize</payment_action>
+                <payment_action>authorize_capture</payment_action>
                 <model>Apruve\Payment\Model\PaymentMethod</model>
                 <title>Apruve Payments</title>
                 <order_status>pending_payment</order_status>
+                <allowspecific>0</allowspecific>
+                <group>offline</group>
             </apruve>
         </payment>
     </default>
