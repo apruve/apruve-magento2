@@ -12,7 +12,7 @@ class Index extends \Magento\Framework\App\Action\Action
     protected $invoiceService;
     protected $transaction;
     protected $helper;
-    
+
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
         \Magento\Framework\View\Result\PageFactory $resultPageFactory,
@@ -29,40 +29,47 @@ class Index extends \Magento\Framework\App\Action\Action
         $this->order = $order;
         $this->payments = $payments;
         $this->invoiceService = $invoiceService;
-        
+
         $this->transaction = $transaction;
         $this->orderManagement = $orderManagement;
         $this->helper = $helper;
         parent::__construct($context);
     }
-    
+
     public function execute() {
         if (!$this->_validate()) {
             return;
         };
-        
+
         $data = $this->_getData();
         $action = $data->event;
 
         switch ($action) {
-            // cancelled is used in docs, canceled live 
+            // cancelled is used in docs, canceled live
             case 'order.canceled':
-            case 'order.cancelled': 
+            case 'order.cancelled':
                 $this->_cancelOrder($data);
             break;
-            
-            case 'order.accepted':
-                return;
-                
-                $this->_acceptOrder($data);
+
+            case 'payment_term.accepted':
+                $this->_paymentTermAccepted($data);
             break;
-            
+
             case 'invoice.closed':
                 $this->_invoiceClosed($data);
             break;
         }
-        
+
         header("HTTP/1.1 200");
+    }
+
+    protected function _paymentTermAccepted($data){
+      $orderId = $this->payments->getFirstItem()->getParentId();
+      $this->order->load($orderId);
+      $this->order->setStatus('apruve_buyer_approved');
+      $this->order->save();
+
+      return $this;
     }
 
     protected function _cancelOrder($data) {
@@ -72,10 +79,10 @@ class Index extends \Magento\Framework\App\Action\Action
         if (!$this->payments->getSize()) {
             return;
         }
-        
+
         $orderId = $this->payments->getFirstItem()->getParentId();
         $this->orderManagement->cancel($orderId);
-        
+
         return $this;
     }
 
@@ -85,39 +92,39 @@ class Index extends \Magento\Framework\App\Action\Action
         if (!$this->payments->getSize()) {
             return;
         }
-    
+
         $orderId = $this->payments->getFirstItem()->getParentId();
         $this->order->load($orderId);
-        
+
         // Create Invoice
         if($this->order->canInvoice()) {
             $payment = $this->order->getPayment();
             $payment->setLastTransId($data->entity->id);
             $payment->setTransactionId($data->entity->id);
-            
+
             $invoice = $this->invoiceService->prepareInvoice($this->order);
             $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
             $invoice->register();
             $invoice->save();
-            
+
             $transactionSave = $this->transaction
                 ->addObject($invoice)
                 ->addObject($invoice->getOrder())
                 ->addObject($payment);
-            
+
             $transactionSave->save();
-            
+
             /* Notify Customer
             $this->invoiceSender->send($invoice);
             //send notification code
-            
+
             $this->order
                 ->addStatusHistoryComment(__('Notified customer about invoice #%1.', $invoice->getId()))
                 ->setIsCustomerNotified(true)
                 ->save();
             */
         }
-    
+
         return $this;
     }
 
@@ -128,32 +135,32 @@ class Index extends \Magento\Framework\App\Action\Action
                 return $value;
             }
         }
-        
+
         return false;
     }
-    
+
     protected function _getRawData() {
         return file_get_contents('php://input');
     }
-    
+
     protected function _getData() {
         $data = trim($this->_getRawData());
         return json_decode($data);
     }
-    
+
     protected function _validate() {
         if ($this->_validateWebhookUrl()) {
             return true;
         }
-        
+
         $hash = $this->_getApruveHeader();
         $data = $this->_getRawData();
-        
+
         return $hash == hash('sha256', $data);
     }
-    
+
     protected function _validateWebhookUrl() {
         $hash = $this->_request->getServer('QUERY_STRING');
-        return $this->helper->validateWebhookHash($hash);	
+        return $this->helper->validateWebhookHash($hash);
     }
 }

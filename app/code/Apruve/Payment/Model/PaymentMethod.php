@@ -19,7 +19,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     protected $_canRefund = true;
     protected $_canRefundInvoicePartial = true;
     protected $_isInitializeNeeded = false;
-    protected $_isOffline = false;
     protected $_canUseInternal = true;
     protected $_configProvider;
 
@@ -123,7 +122,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             $discountItem['price_ea_cents']    = (int) ($discount * 100);
             $discountItem['quantity']          = 1;
             $discountItem['price_total_cents'] = (int) ($discount * 100);
-            $discountItem['currency']          = $invoice->getData('order_currency_code');
+            $discountItem['currency']          = $order->getData('order_currency_code');
             $discountItem['title']             = self::DISCOUNT;
             $discountItem['merchant_notes']    = '';
             $discountItem['description']       = self::DISCOUNT;
@@ -144,23 +143,15 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
         $payment->setAmount($amount)->setTransactionId($response->id);
         $payment->setTransactionId($token)->setIsTransactionClosed(0);
-        
-        /**Create Invoice*/
-        $invoices = $order->getInvoiceCollection();
-        foreach ($invoices as $invoice) {
-            $invoiceId = $invoice->getId();
-        }
-
 
         return $this;
     }
     public function cancel(\Magento\Payment\Model\InfoInterface $payment)
     {
-        $data = $payment->getAdditionalInformation();
-        if ($data && $data['aid']) {
-            $token = $data['aid'];
+        $data = $payment->getTransactionId();
+        if ($data) {
             try {
-                $response = $this->_apruve(self::CANCEL_ACTION, $token);
+                $response = $this->_apruve(self::CANCEL_ACTION, $data);
             }
             catch (\Exception $e) {
             }
