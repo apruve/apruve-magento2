@@ -22,7 +22,8 @@ class Index extends \Magento\Framework\App\Action\Action
         \Magento\Sales\Api\OrderManagementInterface $orderManagement,
         \Magento\Sales\Model\Service\InvoiceService $invoiceService,
         \Magento\Framework\DB\Transaction $transaction,
-        \Apruve\Payment\Helper\Data $helper
+        \Apruve\Payment\Helper\Data $helper,
+        \Psr\Log\LoggerInterface $logger //log injection
     ) {
         $this->resultPageFactory = $resultPageFactory;
         $this->jsonHelper = $jsonHelper;
@@ -33,6 +34,7 @@ class Index extends \Magento\Framework\App\Action\Action
         $this->transaction = $transaction;
         $this->orderManagement = $orderManagement;
         $this->helper = $helper;
+        $this->_logger = $logger;
         parent::__construct($context);
     }
 
@@ -50,7 +52,6 @@ class Index extends \Magento\Framework\App\Action\Action
             case 'order.cancelled':
                 $this->_cancelOrder($data);
             break;
-
             case 'payment_term.accepted':
                 $this->_paymentTermAccepted($data);
             break;
@@ -64,17 +65,14 @@ class Index extends \Magento\Framework\App\Action\Action
     }
 
     protected function _paymentTermAccepted($data){
-      $orderId = $this->payments->getFirstItem()->getParentId();
-      $this->order->load($orderId);
-      $this->order->setStatus('apruve_buyer_approved');
-      $this->order->save();
-
-      return $this;
+        $this->order->loadByIncrementId($data->entity->merchant_order_id);
+        $this->order->setStatus('apruve_buyer_approved');
+        $this->order->save();
+        return $this;
     }
 
     protected function _cancelOrder($data) {
         $transactionId = $data->entity->id;
-
         $this->payments->addAttributeToFilter('last_trans_id', $transactionId);
         if (!$this->payments->getSize()) {
             return;
@@ -113,16 +111,6 @@ class Index extends \Magento\Framework\App\Action\Action
                 ->addObject($payment);
 
             $transactionSave->save();
-
-            /* Notify Customer
-            $this->invoiceSender->send($invoice);
-            //send notification code
-
-            $this->order
-                ->addStatusHistoryComment(__('Notified customer about invoice #%1.', $invoice->getId()))
-                ->setIsCustomerNotified(true)
-                ->save();
-            */
         }
 
         return $this;

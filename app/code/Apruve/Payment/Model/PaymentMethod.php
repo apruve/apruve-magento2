@@ -32,13 +32,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
     public function assignData(\Magento\Framework\DataObject $data)
     {
-        // $additionalData = $data->getAdditionalData();
-        // if (empty($additionalData['apruve_order_id'])) {
-        //     throw new \Magento\Framework\Validator\Exception(__('Apruve assignData Error.'. print_r($additionalData, true)));
-        // } else {
-        // $this->getInfoInstance()->setAdditionalInformation(array('aid' => $additionalData['apruve_order_id']));
-        // }
-
         return $this;
     }
 
@@ -73,6 +66,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
         $data                        = array();
         $data['merchant_id']         = $this->_getMerchantKey();
+        $data['merchant_order_id']   = $order->getIncrementId();
         $data['shopper_id']          = $buyer->id;
         $data['amount_cents']        = ($order->getPayment()->getData('amount_ordered')) * 100;
         $data['currency']            = $order->getData('base_currency_code');
@@ -232,6 +226,11 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->_configProvider = $objectManager->create('Apruve\Payment\Model\CustomConfigProvider');
 
         return $this->_configProvider;
+    }
+
+    public function getCode()
+    {
+        return 'apruve';
     }
 
     protected function _getCorporateAccount($email)
