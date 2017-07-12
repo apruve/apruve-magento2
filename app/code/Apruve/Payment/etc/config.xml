@@ -1,10 +1,11 @@
 <?xml version="1.0"?>
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
     <default>
         <payment>
             <apruve>
                 <active>1</active>
-                <payment_action>authorize_capture</payment_action>
+                <payment_action>authorize</payment_action>
                 <model>Apruve\Payment\Model\PaymentMethod</model>
                 <title>Apruve Payments</title>
                 <order_status>pending_payment</order_status>
