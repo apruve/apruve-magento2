@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <!-- you can change this event name -->
     <event name="sales_order_shipment_save_after">
-        <observer name="ShippingObserver" instance="Apruve\Payment\Model\Observer\ShipmentObserver"/>
+        <observer name="ShipmentObserver" instance="Apruve\Payment\Observer\ShipmentObserver"/>
     </event>
 </config>

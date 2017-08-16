@@ -5,39 +5,41 @@ namespace Apruve\Payment\Setup;
 use Magento\Framework\Setup\InstallDataInterface;
 use Magento\Framework\Setup\ModuleContextInterface;
 use Magento\Framework\Setup\ModuleDataSetupInterface;
-use Magento\Sales\Model\Order\Status;
 use Magento\Sales\Model\Order\Status\State;
 
-class InstallData implements InstallDataInterface {
+class InstallData implements InstallDataInterface
+{
 
-	public function install( ModuleDataSetupInterface $setup, ModuleContextInterface $context ) {
-		/**
-		 * Prepare database for install
-		 */
-		$setup->startSetup();
+    /**
+     * {@inheritdoc}
+     */
+    public function install(ModuleDataSetupInterface $setup, ModuleContextInterface $context)
+    {
+        /**
+         * Prepare database for install
+         */
+        $setup->startSetup();
 
-		$setup->getConnection()
-		      ->insertArray( $setup->getTable( 'sales_order_status' ), [
-			      'status',
-			      'label'
-		      ], [ 'status' => 'apruve_buyer_approved', 'label' => 'Apruve Buyer Approved' ] );
+        $data     = [];
+        $statuses = [
+            'apruve_buyer_approved' => __('Apruve Buyer Approved')
+        ];
+        foreach ($statuses as $code => $info) {
+            $data[] = [ 'status' => $code, 'label' => $info ];
+        }
+        $setup->getConnection()
+              ->insertArray($setup->getTable('sales_order_status'), [ 'status', 'label' ], $data);
+        $stateData   = [];
+        $stateData[] = [
+            'status'           => 'apruve_buyer_approved',
+            'state'            => 'Apruve Buyer Approved',
+            'is_default'       => 0,
+            'visible_on_front' => 0
+        ];
 
-		$setup->getConnection()
-		      ->insertArray( $setup->getTable( 'sales_order_status_state' ), [
-			      'status',
-			      'label',
-			      'is_default',
-			      'visible_on_front',
-			      [
-				      'status'           => 'apruve_buyer_approved',
-				      'state'            => 'apruve_buyer_approved',
-				      'is_default'       => 1,
-				      'visible_on_front' => 0
-			      ]);
-
-		/**
-		 * Prepare database after install
-		 */
-		$setup->endSetup();
-	}
+        /**
+         * Prepare database after install
+         */
+        $setup->endSetup();
+    }
 }
