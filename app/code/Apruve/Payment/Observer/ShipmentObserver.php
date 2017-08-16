@@ -102,13 +102,6 @@ class ShipmentObserver implements ObserverInterface
         $this->_isOrderComplete();
     }
 
-    /**
-     * Get the list of items shipped with it's qty
-     *
-     * @param Mage_Sales_Model_Order_Shipment $shipment
-     *
-     * @return []
-     */
     protected function _getShippedItemQty($shipment)
     {
         $qtys = [];
@@ -120,13 +113,6 @@ class ShipmentObserver implements ObserverInterface
         return $qtys;
     }
 
-    /**
-     * Create Magento Invoice from the shipment for an order in magento
-     *
-     * @param Mage_Sales_Model_Order_Shipment $shipment
-     *
-     * @return Mage_Sales_Model_Order_Invoice
-     */
     protected function _createInvoiceFromShipment($itemQty)
     {
         $token = $this->_order->getPayment()->getLastTransId();
@@ -246,11 +232,9 @@ class ShipmentObserver implements ObserverInterface
         }
     }
 
-    /** Apruve API Manipulation method */
     protected function _apruve($action, $token, $data = '', $object = 'orders', $requestType = 'POST')
     {
         $url = sprintf("https://%s.apruve.com/api/v4/%s", $this->method->getConfigData('mode'), $object);
-//	    $url = sprintf("http://0.0.0.0:3000/api/v4/%s", $object);
 
         if (! empty($token)) {
             // Here we need to remove "-void", etc.
