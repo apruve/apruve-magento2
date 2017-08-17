@@ -1,4 +1,4 @@
 require([
-    'jquery',
-], function () {
-});
+      'jquery',
+    ], function () {
+    });

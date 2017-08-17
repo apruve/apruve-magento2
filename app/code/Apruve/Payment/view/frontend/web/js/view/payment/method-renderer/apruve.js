@@ -5,12 +5,12 @@ define(
     ],
     function (Apruve, Component) {
         'use strict';
-
+ 
         return Component.extend({
             defaults: {
                 template: 'Apruve_Payment/payment/apruve'
             },
-
+            
             getData: function () {
                 return {
                     'method': this.item.method,
@@ -24,7 +24,7 @@ define(
                 this._super();
                 Apruve.load();
             },
-
+            
             getMailingAddress: function () {
                 return window.checkoutConfig.payment.checkmo.mailingAddress;
             },
@@ -36,7 +36,7 @@ define(
             getMerchantId: function () {
                 return window.checkoutConfig.payment.apruve.merchant_id;
             },
-
+            
             getApruveOrderId: function () {
                 return jQuery('#apruve-order-id').val();
             },

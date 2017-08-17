@@ -18,8 +18,8 @@ class Index extends \Magento\Framework\App\Action\Action
         \Apruve\Payment\Helper\Data $helper
     ) {
         $this->request = $request;
-        $this->helper  = $helper;
-        $this->quote   = $cart->getQuote();
+        $this->helper = $helper;
+        $this->quote = $cart->getQuote();
 
         parent::__construct($context);
     }
@@ -30,9 +30,9 @@ class Index extends \Magento\Framework\App\Action\Action
         $quote = $this->quote;
 
         $poNumber = $this->request->getParam('poNumber');
-        $totals   = $quote->getTotals();
+        $totals = $quote->getTotals();
 
-        if (! empty($poNumber) && $poNumber != 'undefined') {
+        if (!empty($poNumber) && $poNumber != 'undefined') {
             $order['po_number'] = $poNumber;
         } else {
             if (isset($order['po_number'])) {
@@ -40,8 +40,8 @@ class Index extends \Magento\Framework\App\Action\Action
             }
         }
 
-        $order['amount_cents']   = $totals['grand_total']->getValue() * 100;
-        $order['tax_cents']      = $totals['tax']->getValue() * 100;
+        $order['amount_cents'] = $totals['grand_total']->getValue() * 100;
+        $order['tax_cents'] = $totals['tax']->getValue() * 100;
         $order['shipping_cents'] = $quote->getShippingAddress()->getShippingAmount() * 100;
 
         /*Discount Item*/
@@ -49,14 +49,14 @@ class Index extends \Magento\Framework\App\Action\Action
 
         if ($discount > 0) {
             //Add Discount item
-            $discountItem                     = [];
-            $discountItem['title']            = self::DISCOUNT;
-            $discountItem['amount_cents']     = (int) ( $discount * - 100 );
-            $discountItem['price_ea_cents']   = (int) ( $discount * - 100 );
-            $discountItem['quantity']         = 1;
-            $discountItem['description']      = self::DISCOUNT;
-            $discountItem['sku']              = self::DISCOUNT;
-            $discountItem['variant_info']     = '';
+            $discountItem = [];
+            $discountItem['title'] = self::DISCOUNT;
+            $discountItem['amount_cents'] = (int)($discount * -100);
+            $discountItem['price_ea_cents'] = (int)($discount * -100);
+            $discountItem['quantity'] = 1;
+            $discountItem['description'] = self::DISCOUNT;
+            $discountItem['sku'] = self::DISCOUNT;
+            $discountItem['variant_info'] = '';
             $discountItem['view_product_url'] = $this->helper->getStoreUrl();
 
             $hasDiscountItem = false;
@@ -66,34 +66,34 @@ class Index extends \Magento\Framework\App\Action\Action
                 }
             }
 
-            if (! $hasDiscountItem) {
+            if (!$hasDiscountItem) {
                 $order['line_items'][] = $discountItem;
             }
         } else {
             // Remove Discount item
             foreach ($order['line_items'] as $k => $item) {
                 if ($item['title'] == self::DISCOUNT) {
-                    unset($order['line_items'][ $k ]);
+                    unset($order['line_items'][$k]);
                 }
             }
         }
 
         $this->order = $order;
-        $data        = [
-            'order'       => json_encode($this->order),
+        $data = [
+            'order' => json_encode($this->order),
             'secure_hash' => $this->_getSecureHash()
         ];
 
-        return json_encode($data);
+        echo json_encode($data);
     }
 
     protected function _getSecureHash()
     {
-        $order        = $this->order;
+        $order = $this->order;
         $concatString = $this->helper->getApiKey();
 
         foreach ($order as $val) {
-            if (! is_array($val)) {
+            if (!is_array($val)) {
                 $concatString .= $val;
             } else {
                 foreach ($val as $v) {
