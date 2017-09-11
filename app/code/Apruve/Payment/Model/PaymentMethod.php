@@ -16,8 +16,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     protected $_canCapture = true;
     protected $_canCapturePartial = false;
     protected $_canVoid = true;
-    protected $_canRefund = true;
-    protected $_canRefundInvoicePartial = true;
+    protected $_canRefund = false;
+    protected $_canRefundInvoicePartial = false;
     protected $_isInitializeNeeded = false;
     protected $_canUseInternal = true;
     protected $_configProvider;
@@ -34,6 +34,11 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
     public function assignData(\Magento\Framework\DataObject $data)
     {
+        $additionalData = $data->getAdditionalData();
+        if (!isset($additionalData['apruve_order_id'])) {
+            throw new \Magento\Framework\Validator\Exception(__('Payment Error.'));
+        }
+        $this->getInfoInstance()->setAdditionalInformation(['aid' => $additionalData['apruve_order_id']]);
         return $this;
     }
 
@@ -44,11 +49,13 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
     public function validate()
     {
-        if (! $this->_isAdmin()) {
-            throw new \Magento\Framework\Validator\Exception(__('You are not authorized to make an Apruve transaction.'));
+        $info = $this->getInfoInstance();
+        $token = $info->getAdditionalInformation()['aid'];
+        if (!isset($token)) {
+            $errorMsg = __('Empty Payment Order ID');
+            throw new \Magento\Framework\Validator\Exception($errorMsg);
         }
-
-        return $this;
+        return true;
     }
 
     protected function _isAdmin($store = null)
@@ -150,8 +157,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $token = $response->id;
 
         $payment->setParentTransactionId(null);
-        $payment->setAmount($amount)->setTransactionId($token);
-        $payment->setTransactionId($token)->setIsTransactionClosed(0);
+        $payment->setAmount($amount)->setTransactionId($token)->setIncrementalId($token);
+        $payment->setIncrementId($token)->setIsTransactionClosed(0);
         $order->save();
 
         return $this;
@@ -221,7 +228,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             return json_decode($response);
         }
 
-        return false;
+        throw new \Magento\Framework\Exception\LocalizedException(__('Could not complete operation with ' . $object));
     }
 
     protected function _getMerchantKey()
@@ -242,7 +249,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
     public function cancel(\Magento\Payment\Model\InfoInterface $payment)
     {
-        $data = $payment->getTransactionId();
+        $data = $payment->getIncrementId();
         if ($data) {
             try {
                 $response = $this->_apruve(self::CANCEL_ACTION, $data);
@@ -251,27 +258,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         }
 
         return parent::cancel($payment);
-    }
-
-    public function refund(\Magento\Payment\Model\InfoInterface $payment, $amount)
-    {
-        if (! $this->canRefund()) {
-            throw new \Magento\Framework\Exception\LocalizedException(__('The refund action is not available.'));
-        }
-
-        $invoice   = $payment->getCreditmemo()->getInvoice();
-        $invoiceId = $invoice->getTransactionId();
-        if (! $invoiceId) {
-            throw new \Magento\Framework\Exception\LocalizedException(__('The refund action is not available.'));
-        }
-
-        $refundAmount         = $invoice->getGrandTotal() - $amount;
-        $data                 = [];
-        $data['amount_cents'] = $refundAmount * 100;
-
-        $this->_apruve('', $invoiceId, json_encode($data), 'invoices', 'PUT');
-
-        return $this;
     }
 
     public function getConfig()

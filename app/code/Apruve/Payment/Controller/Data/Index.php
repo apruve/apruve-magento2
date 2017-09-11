@@ -84,7 +84,7 @@ class Index extends \Magento\Framework\App\Action\Action
             'secure_hash' => $this->_getSecureHash()
         ];
 
-        echo json_encode($data);
+        return json_encode($data);
     }
 
     protected function _getSecureHash()

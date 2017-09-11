@@ -18,19 +18,22 @@ class ShipmentObserver implements ObserverInterface
     protected $shipment;
     protected $firstShipment;
     protected $invoiceService;
+    protected $invoiceInterface;
 
     public function __construct(
         \Magento\Payment\Helper\Data $paymentHelper,
         \Apruve\Payment\Helper\Data $helper,
         \Magento\Framework\DB\Transaction $transaction,
         \Magento\Sales\Model\Service\InvoiceService $invoiceService,
-        \Magento\Sales\Api\Data\OrderInterface $order
+        \Magento\Sales\Api\Data\OrderInterface $order,
+        \Magento\Sales\Api\Data\InvoiceInterface $invoiceInterface
     ) {
-        $this->method          = $paymentHelper->getMethodInstance(self::CODE);
-        $this->_helper         = $helper;
-        $this->_invoiceService = $invoiceService;
-        $this->_transaction    = $transaction;
-        $this->_order          = $order;
+        $this->method            = $paymentHelper->getMethodInstance(self::CODE);
+        $this->_helper           = $helper;
+        $this->_invoiceService   = $invoiceService;
+        $this->_transaction      = $transaction;
+        $this->_order            = $order;
+        $this->_invoiceInterface = $invoiceInterface;
     }
 
     public function execute(\Magento\Framework\Event\Observer $observer)
@@ -138,12 +141,13 @@ class ShipmentObserver implements ObserverInterface
                 }
 
                 $invoice->setTransactionId($response->id);
+                return $invoice;
             }
         } catch (\Exception $e) {
             throw new \Magento\Framework\Validator\Exception(__('Apruve invoice creation error'));
         }
 
-        return $invoice;
+        throw new \Magento\Framework\Validator\Exception(__('Apruve invoice creation error'));
     }
 
     protected function _getInvoiceData($invoice, $itemQty = null)
@@ -358,6 +362,12 @@ class ShipmentObserver implements ObserverInterface
 
     protected function _processShipment($token, $data = '')
     {
+        $token = str_replace(
+            '-capture',
+            '',
+            $token
+        );
+
         $apiKey = $this->method->getConfigData('api_key');
         $mode   = $this->method->getConfigData('mode');
         $url    = sprintf("https://%s.apruve.com/api/v4/invoices/%s/shipments", $mode, $token);
@@ -409,6 +419,6 @@ class ShipmentObserver implements ObserverInterface
 
         $invoice = $invoices->getFirstItem();
 
-        return $invoice->getTransactionId();
+        return $invoice->getIncrementId();
     }
 }
