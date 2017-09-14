@@ -93,7 +93,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $data['shipping_cents']      = $order->getData('shipping_amount') * 100;
         $data['tax_cents']           = $order->getData('tax_amount') * 100;
         $data['merchant_notes']      = '';
-        $data['merchant_invoice_id'] = 'blah!';
+        $data['merchant_invoice_id'] = '';
         $data['due_at']              = '';
         $data['order_items']         = [];
         $data['final_on_create']     = 'false';
