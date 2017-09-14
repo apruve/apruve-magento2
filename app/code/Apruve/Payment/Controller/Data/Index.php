@@ -80,7 +80,7 @@ class Index extends \Magento\Framework\App\Action\Action
 
         $this->order = $order;
         $data = [
-            'order' => json_encode($this->order),
+            'order' => $this->order,
             'secure_hash' => $this->_getSecureHash()
         ];
 

@@ -51,11 +51,6 @@ class Index extends \Magento\Framework\App\Action\Action
             case 'invoice.closed':
                 $this->_invoiceClosed($data);
                 break;
-
-            case 'order.canceled':
-                $this->_changeOrderStatus($data);
-                break;
-
             // cancelled is used in docs, canceled live
             case 'order.canceled':
             case 'order.cancelled':
@@ -144,30 +139,6 @@ class Index extends \Magento\Framework\App\Action\Action
         }
 
         return $this;
-    }
-
-    protected function _changeOrderStatus($data)
-    {
-        if ($this->order && $this->order->getId() && ! $this->order->isCanceled()) {
-            $result = $this->_createInvoice($this->order->getIncrementId());
-
-            return $result;
-        }
-
-        return false;
-    }
-
-    protected function _createInvoice()
-    {
-//        if ($orderId) {
-//            /** @var Mage_Sales_Model_Order_Invoice_Api $iApi */
-//            $iApi      = Mage::getModel('sales/order_invoice_api');
-//            $invoiceId = $iApi->create($orderId, []);
-//
-//            return true;
-//        }
-//
-//        return false;
     }
 
     protected function _cancelOrder($data)
