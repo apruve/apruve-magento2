@@ -1,15 +1,13 @@
 {
   "name": "apruve/module-magento2",
   "description": "A Magento 2 module to integrate with the Apruve B2B credit network",
-  "vendor-name"
   "type": "magento2-module",
-  "version": "0.1.0alpha",
+  "version": "1.0.2",
   "license": [
     "MPL-2.0"
   ],
   "require": {
-    "php": "~5.5.0|~5.6.0|~7.0.0",
-    "magento/framework": "~100.0.12"
+    "php": "~5.5.0|~5.6.0|~7.0.0|~7.1"
   },
   "support": {
     "email": "support@apruve.com",
@@ -18,6 +16,7 @@
     "docs": "https://docs.apruve.com/"
   },
   "autoload": {
+    "name": "Apruve/Payment",
     "files": [
       "registration.php"
     ],
