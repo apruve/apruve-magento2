@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
     <default>
         <payment>
             <apruve>
@@ -8,6 +9,9 @@
                 <model>Apruve\Payment\Model\PaymentMethod</model>
                 <title>Apruve Payments</title>
                 <order_status>pending_payment</order_status>
+                <allowspecific>0</allowspecific>
+                <group>offline</group>
+                <can_capture_partial>1</can_capture_partial>
             </apruve>
         </payment>
     </default>

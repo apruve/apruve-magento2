@@ -12,7 +12,7 @@ class Index extends \Magento\Framework\App\Action\Action
     protected $invoiceService;
     protected $transaction;
     protected $helper;
-    
+
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
         \Magento\Framework\View\Result\PageFactory $resultPageFactory,
@@ -22,138 +22,145 @@ class Index extends \Magento\Framework\App\Action\Action
         \Magento\Sales\Api\OrderManagementInterface $orderManagement,
         \Magento\Sales\Model\Service\InvoiceService $invoiceService,
         \Magento\Framework\DB\Transaction $transaction,
-        \Apruve\Payment\Helper\Data $helper
+        \Apruve\Payment\Helper\Data $helper,
+        \Psr\Log\LoggerInterface $logger //log injection
     ) {
         $this->resultPageFactory = $resultPageFactory;
-        $this->jsonHelper = $jsonHelper;
-        $this->order = $order;
-        $this->payments = $payments;
-        $this->invoiceService = $invoiceService;
-        
-        $this->transaction = $transaction;
+        $this->jsonHelper        = $jsonHelper;
+        $this->order             = $order;
+        $this->payments          = $payments;
+        $this->invoiceService    = $invoiceService;
+
+        $this->transaction     = $transaction;
         $this->orderManagement = $orderManagement;
-        $this->helper = $helper;
+        $this->helper          = $helper;
+        $this->_logger         = $logger;
         parent::__construct($context);
     }
-    
-    public function execute() {
-        if (!$this->_validate()) {
+
+    public function execute()
+    {
+        if (! $this->_validate()) {
             return;
         };
-        
-        $data = $this->_getData();
+
+        $data   = $this->_getData();
         $action = $data->event;
 
         switch ($action) {
-            // cancelled is used in docs, canceled live 
-            case 'order.canceled':
-            case 'order.cancelled': 
-                $this->_cancelOrder($data);
-            break;
-            
-            case 'order.accepted':
-                return;
-                
-                $this->_acceptOrder($data);
-            break;
-            
             case 'invoice.closed':
                 $this->_invoiceClosed($data);
-            break;
+                break;
+            // cancelled is used in docs, canceled live
+            case 'order.canceled':
+            case 'order.cancelled':
+                $this->_cancelOrder($data);
+                break;
+
+            case 'payment_term.accepted':
+                $this->_paymentTermAccepted($data);
+                break;
         }
-        
+
         header("HTTP/1.1 200");
     }
 
-    protected function _cancelOrder($data) {
-        $transactionId = $data->entity->id;
-
-        $this->payments->addAttributeToFilter('last_trans_id', $transactionId);
-        if (!$this->payments->getSize()) {
-            return;
+    protected function _validate()
+    {
+        if ($this->_validateWebhookUrl()) {
+            return true;
         }
-        
-        $orderId = $this->payments->getFirstItem()->getParentId();
-        $this->orderManagement->cancel($orderId);
-        
-        return $this;
+
+        $hash = $this->_getApruveHeader();
+        $data = $this->_getRawData();
+
+        return $hash == hash('sha256', $data);
     }
 
-    protected function _invoiceClosed($data) {
-        $transactionId = $data->entity->order_id;
-        $this->payments->addAttributeToFilter('last_trans_id', $transactionId);
-        if (!$this->payments->getSize()) {
-            return;
-        }
-    
-        $orderId = $this->payments->getFirstItem()->getParentId();
-        $this->order->load($orderId);
-        
-        // Create Invoice
-        if($this->order->canInvoice()) {
-            $payment = $this->order->getPayment();
-            $payment->setLastTransId($data->entity->id);
-            $payment->setTransactionId($data->entity->id);
-            
-            $invoice = $this->invoiceService->prepareInvoice($this->order);
-            $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
-            $invoice->register();
-            $invoice->save();
-            
-            $transactionSave = $this->transaction
-                ->addObject($invoice)
-                ->addObject($invoice->getOrder())
-                ->addObject($payment);
-            
-            $transactionSave->save();
-            
-            /* Notify Customer
-            $this->invoiceSender->send($invoice);
-            //send notification code
-            
-            $this->order
-                ->addStatusHistoryComment(__('Notified customer about invoice #%1.', $invoice->getId()))
-                ->setIsCustomerNotified(true)
-                ->save();
-            */
-        }
-    
-        return $this;
+    protected function _validateWebhookUrl()
+    {
+        $hash = $this->_request->getServer('QUERY_STRING');
+
+        return $this->helper->validateWebhookHash($hash);
     }
 
-    protected function _getApruveHeader() {
+    protected function _getApruveHeader()
+    {
         $headers = getallheaders();
         foreach ($headers as $name => $value) {
             if ($name == 'X-Apruve-Signature') {
                 return $value;
             }
         }
-        
+
         return false;
     }
-    
-    protected function _getRawData() {
+
+    protected function _getRawData()
+    {
         return file_get_contents('php://input');
     }
-    
-    protected function _getData() {
+
+    protected function _getData()
+    {
         $data = trim($this->_getRawData());
+
         return json_decode($data);
     }
-    
-    protected function _validate() {
-        if ($this->_validateWebhookUrl()) {
-            return true;
+
+    protected function _invoiceClosed($data)
+    {
+        $transactionId = $data->entity->order_id;
+        $this->payments->addAttributeToFilter('last_trans_id', $transactionId);
+        if (! $this->payments->getSize()) {
+            return;
         }
-        
-        $hash = $this->_getApruveHeader();
-        $data = $this->_getRawData();
-        
-        return $hash == hash('sha256', $data);
+
+        $orderId = $this->payments->getFirstItem()->getParentId();
+        $this->order->load($orderId);
+
+        // Create Invoice
+        if ($this->order->canInvoice()) {
+            $payment = $this->order->getPayment();
+            $payment->setLastTransId($data->entity->id);
+            $payment->setTransactionId($data->entity->id);
+
+            $invoice = $this->invoiceService->prepareInvoice($this->order);
+            $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
+            $invoice->register();
+            $invoice->save();
+
+            $transactionSave = $this->transaction
+                ->addObject($invoice)
+                ->addObject($invoice->getOrder())
+                ->addObject($payment);
+
+            $transactionSave->save();
+        }
+
+        return $this;
     }
-    
-    protected function _validateWebhookUrl() {
-        $hash = $this->_request->getServer('QUERY_STRING');
-        return $this->helper->validateWebhookHash($hash);	
+
+    protected function _cancelOrder($data)
+    {
+        $transactionId = $data->entity->id;
+        $this->payments->addAttributeToFilter('last_trans_id', $transactionId);
+        if (! $this->payments->getSize()) {
+            return;
+        }
+
+        $orderId = $this->payments->getFirstItem()->getParentId();
+        $this->orderManagement->cancel($orderId);
+
+        return $this;
+    }
+
+    protected function _paymentTermAccepted($data)
+    {
+        $this->order->loadByIncrementId($data->entity->merchant_order_id);
+        $this->order->setStatus('apruve_buyer_approved');
+        $this->order->save();
+
+        return $this;
     }
 }

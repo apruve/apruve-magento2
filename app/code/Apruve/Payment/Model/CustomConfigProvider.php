@@ -23,7 +23,8 @@ class CustomConfigProvider implements ConfigProviderInterface
         $this->order = $this->_getOrderData();
     }
 
-    public function getConfig() {
+    public function getConfig()
+    {
         return [
             'payment' => [
                 self::CODE => [
@@ -37,57 +38,64 @@ class CustomConfigProvider implements ConfigProviderInterface
             ]
         ];
     }
-    
-    public function getConfigJson() {
+
+    public function getConfigJson()
+    {
         $config = $this->getConfig();
         if ($config) {
             return json_encode($this->getConfig());
         }
-        
+
         return false;
     }
 
-    protected function _getApiKey() {
+    protected function _getApiKey()
+    {
         return $this->method->getConfigData('api_key');
     }
 
-    protected function _getMerchantId() {
+    protected function _getMerchantId()
+    {
         return $this->method->getConfigData('merchant_id');
     }
-    
-    protected function _getOrder() {
+
+    protected function _getOrder()
+    {
         return json_encode($this->order);
     }
 
-    protected function _getSecureHash() {
+    protected function _getSecureHash()
+    {
         $order = $this->order;
-        
+
         $concatString = $this->_getApiKey();
         foreach ($order as $val) {
-            if(!is_array($val)) {
+            if (!is_array($val)) {
                 $concatString .= $val;
             } else {
-                foreach($val as $v) {
+                foreach ($val as $v) {
                     foreach ($v as $s) {
                         $concatString .= $s;
                     }
                 }
             }
         }
-        
+
         return hash('sha256', $concatString);
     }
 
-    protected function _getJSEndpoint() {
+    protected function _getJSEndpoint()
+    {
         return '//'.$this->method->getConfigData('mode').'.apruve.com';
     }
-    
-    protected function _getOrderData() {
-        $order = array();
+
+    protected function _getOrderData()
+    {
+        $order = [];
         $quote = $this->_getQuote();
         $quote->reserveOrderId();
         $totals = $quote->getTotals();
-        
+
         $order['merchant_id'] = $this->_getMerchantId();
         $order['merchant_order_id'] = $quote->getReservedOrderId();
         $order['amount_cents'] = $totals['grand_total']->getValue() * 100;
@@ -100,9 +108,10 @@ class CustomConfigProvider implements ConfigProviderInterface
         return $order;
     }
 
-    protected function _getOrderItems($quote) {
-        $items = array();
-        
+    protected function _getOrderItems($quote)
+    {
+        $items = [];
+
         foreach ($quote->getAllVisibleItems() as $k => $item) {
             $items[$k]['title'] = $item['name'];
             $items[$k]['amount_cents'] = $item['row_total'] * 100;
@@ -117,10 +126,11 @@ class CustomConfigProvider implements ConfigProviderInterface
         return $items;
     }
 
-    protected function _getQuote() {
+    protected function _getQuote()
+    {
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $state = $objectManager->get('Magento\Framework\App\State');
-        
+
         if ($state->getAreaCode() == 'adminhtml') {
             $cart = $objectManager->get('Magento\Backend\Model\Session\Quote');
             $adminQuote = $cart->getQuote();
@@ -129,7 +139,7 @@ class CustomConfigProvider implements ConfigProviderInterface
         } else {
             $quote = $this->cart->getQuote();
         }
-        
+
         return $quote;
     }
 }

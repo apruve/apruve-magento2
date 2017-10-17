@@ -1,17 +1,18 @@
 define([
     "jquery",
-],function($){
-    var initialize = function() {
+],function ($) {
+    var initialize = function () {
         var jSPath = '/js/v4/apruve.js';
         var jSEndpoint = config.payment.apruve.js_endpoint;
         var url = jSEndpoint + jSPath;
         
         /* Asynchronously load Apruve JS Library */
-        var initApruve = function(url, callback) {
-            jQuery(document.body).on('change', "input[name*='payment']", function() {
+        var initApruve = function (url, callback) {
+            jQuery(document.body).on('change', "input[name*='payment']", function () {
                 if (!(jQuery('.apruveWrap').length > 0)) {
                     apruve = undefined;
-                    initApruve(url,
+                    initApruve(
+                        url,
                         function () {
                             initPayment();
                         }
@@ -37,7 +38,8 @@ define([
         }
 
         if (typeof ApruvePayment === 'undefined') {
-            initApruve(url,
+            initApruve(
+                url,
                 function () {
                     initPayment();
                 }
@@ -47,7 +49,8 @@ define([
         }
 
         /* Init Payment */
-        function initPayment() {
+        function initPayment()
+        {
             var merchantId = config.payment.apruve.merchant_id;
             var order = JSON.parse(config.payment.apruve.order);
             var secureHash = config.payment.apruve.secure_hash;

@@ -11,7 +11,7 @@ define(
                 template: 'Apruve_Payment/payment/apruve'
             },
             
-            getData: function() {
+            getData: function () {
                 return {
                     'method': this.item.method,
                     'additional_data': {
@@ -21,23 +21,23 @@ define(
             },
 
             initialize: function () {
-            	this._super();
-            	Apruve.load();
+                this._super();
+                Apruve.load();
             },
             
-            getMailingAddress: function() {
+            getMailingAddress: function () {
                 return window.checkoutConfig.payment.checkmo.mailingAddress;
             },
 
-            getApiKey: function() {
+            getApiKey: function () {
                 return window.checkoutConfig.payment.apruve.api_key;
             },
 
-            getMerchantId: function() {
+            getMerchantId: function () {
                 return window.checkoutConfig.payment.apruve.merchant_id;
             },
             
-            getApruveOrderId: function() {
+            getApruveOrderId: function () {
                 return jQuery('#apruve-order-id').val();
             },
         });
