@@ -14,7 +14,7 @@ define([
 
         jQuery.ajax({
             url: url,
-            data: 'order='+order+'&poNumber='+poNumber,
+            data: 'order=' + order + '&poNumber=' + poNumber,
             dataType: 'json',
             success: function (data) {
                 window.checkoutConfig.payment.apruve.order = data.order;
@@ -44,8 +44,9 @@ define([
     var preparePONumber = function () {
         // PO Number change dynamically
         if (!$('#po_number').hasClass('apruve')) {
-            $('body').on('change', '#po_number' , function () {
- load() });
+            $('body').on('change', '#po_number', function () {
+                load()
+            });
             $('#po_number').addClass('apruve');
         }
     }
