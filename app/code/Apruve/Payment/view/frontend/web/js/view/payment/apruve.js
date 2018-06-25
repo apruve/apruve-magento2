@@ -27,7 +27,7 @@ define([
     var initialize = function () {
         $.getScript(s, function () {
             var merchantId = window.checkoutConfig.payment.apruve.merchant_id;
-            var order = JSON.parse(window.checkoutConfig.payment.apruve.order);
+            var order = window.checkoutConfig.payment.apruve.order;
             var secureHash = window.checkoutConfig.payment.apruve.secure_hash;
 
             apruve.setOrder(order, secureHash);
