@@ -24,7 +24,8 @@ class Index extends \Magento\Framework\App\Action\Action
         \Magento\Framework\DB\Transaction $transaction,
         \Apruve\Payment\Helper\Data $helper,
         \Psr\Log\LoggerInterface $logger //log injection
-    ) {
+    )
+    {
         $this->resultPageFactory = $resultPageFactory;
         $this->jsonHelper        = $jsonHelper;
         $this->order             = $order;
@@ -40,29 +41,35 @@ class Index extends \Magento\Framework\App\Action\Action
 
     public function execute()
     {
-        if (! $this->_validate()) {
+        if ( ! $this->_validate()) {
             return;
         };
 
         $data   = $this->_getData();
         $action = $data->event;
+        $success = false;
 
         switch ($action) {
             case 'invoice.closed':
-                $this->_invoiceClosed($data);
+                $success = $this->_invoiceClosed($data);
                 break;
             // cancelled is used in docs, canceled live
             case 'order.canceled':
             case 'order.cancelled':
-                $this->_cancelOrder($data);
+            $success = $this->_cancelOrder($data);
                 break;
 
             case 'payment_term.accepted':
-                $this->_paymentTermAccepted($data);
+                $success = $this->_paymentTermAccepted($data);
                 break;
         }
 
-        header("HTTP/1.1 200");
+        if($success){
+            http_response_code(200);
+        } else {
+            http_response_code(404);
+        }
+
     }
 
     protected function _validate()
@@ -110,32 +117,40 @@ class Index extends \Magento\Framework\App\Action\Action
 
     protected function _invoiceClosed($data)
     {
-        $transactionId = $data->entity->order_id;
-        $this->payments->addAttributeToFilter('last_trans_id', $transactionId);
-        if (! $this->payments->getSize()) {
-            return;
-        }
+        $this->_logger->debug('apruve_invoiceClosed');
 
-        $orderId = $this->payments->getFirstItem()->getParentId();
-        $this->order->load($orderId);
+        try {
+            $transactionId = $data->entity->order_id;
+            $this->payments->addAttributeToFilter('last_trans_id', $transactionId);
+            if ( ! $this->payments->getSize()) {
+                return;
+            }
 
-        // Create Invoice
-        if ($this->order->canInvoice()) {
-            $payment = $this->order->getPayment();
-            $payment->setLastTransId($data->entity->id);
-            $payment->setTransactionId($data->entity->id);
+            $orderId = $this->payments->getFirstItem()->getParentId();
+            $this->order->load($orderId);
 
-            $invoice = $this->invoiceService->prepareInvoice($this->order);
-            $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
-            $invoice->register();
-            $invoice->save();
+            // Create Invoice
+            if ($this->order->canInvoice()) {
+                $payment = $this->order->getPayment();
+                $payment->setLastTransId($data->entity->id);
+                $payment->setTransactionId($data->entity->id);
 
-            $transactionSave = $this->transaction
-                ->addObject($invoice)
-                ->addObject($invoice->getOrder())
-                ->addObject($payment);
+                $invoice = $this->invoiceService->prepareInvoice($this->order);
+                $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
+                $invoice->register();
+                $invoice->save();
 
-            $transactionSave->save();
+                $transactionSave = $this->transaction
+                    ->addObject($invoice)
+                    ->addObject($invoice->getOrder())
+                    ->addObject($payment);
+
+                return $transactionSave->save();
+            }
+        } catch (\Magento\Framework\Exception\NoSuchEntityException $e){
+            $this->_logger->info("Cannot find this entity in Magento2 - possible duplicate webhook - invoiceClosed - TransactionId: {$transactionId}");
+        } catch (Exception $e) {
+            $this->_logger->info('Caught exception: ',  $e->getMessage(), "\n");
         }
 
         return $this;
@@ -143,24 +158,37 @@ class Index extends \Magento\Framework\App\Action\Action
 
     protected function _cancelOrder($data)
     {
-        $transactionId = $data->entity->id;
-        $this->payments->addAttributeToFilter('last_trans_id', $transactionId);
-        if (! $this->payments->getSize()) {
-            return;
+        $this->_logger->debug('apruve_cancelOrder');
+
+        try {
+            $transactionId = $data->entity->id;
+            $this->payments->addAttributeToFilter('last_trans_id', $transactionId);
+            if ( ! $this->payments->getSize()) {
+                return;
+            }
+
+            $orderId = $this->payments->getFirstItem()->getParentId();
+            return $this->orderManagement->cancel($orderId);
+        } catch (\Magento\Framework\Exception\NoSuchEntityException $e){
+            $this->_logger->info("Cannot find this entity in Magento2 - possible duplicate webhook - cancelOrder - TransactionId: {$transactionId}");
+        } catch (Exception $e) {
+            $this->_logger->info('Caught exception: ',  $e->getMessage(), "\n");
         }
-
-        $orderId = $this->payments->getFirstItem()->getParentId();
-        $this->orderManagement->cancel($orderId);
-
-        return $this;
     }
 
     protected function _paymentTermAccepted($data)
     {
-        $this->order->loadByIncrementId($data->entity->merchant_order_id);
-        $this->order->setStatus('apruve_buyer_approved');
-        $this->order->save();
+        $this->_logger->debug('apruve_paymentTermAccepted');
 
+        try {
+            $this->order->loadByIncrementId($data->entity->merchant_order_id);
+            $this->order->setStatus('apruve_buyer_approved');
+            return $this->order->save();
+        } catch (\Magento\Framework\Exception\NoSuchEntityException $e){
+            $this->_logger->info("Cannot find this entity in Magento2 - possible duplicate webhook - paymentTermAccepted - MerchantOrderId: {$data->entity->merchant_order_id}");
+        } catch (Exception $e) {
+            $this->_logger->info('Caught exception: ',  $e->getMessage(), "\n");
+        }
         return $this;
     }
 }
