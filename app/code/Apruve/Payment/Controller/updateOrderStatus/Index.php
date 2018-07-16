@@ -50,8 +50,8 @@ class Index extends \Magento\Framework\App\Action\Action
         $success = false;
 
         switch ($action) {
-            case 'invoice.closed':
-                $success = $this->_invoiceClosed($data);
+            case 'invoice.funded':
+                $success = $this->_invoiceFunded($data);
                 break;
             // cancelled is used in docs, canceled live
             case 'order.canceled':
@@ -114,9 +114,9 @@ class Index extends \Magento\Framework\App\Action\Action
         return json_decode($data);
     }
 
-    protected function _invoiceClosed($data)
+    protected function _invoiceFunded($data)
     {
-        $this->_logger->debug('apruve_invoiceClosed');
+        $this->_logger->debug('apruve_invoiceFunded');
 
         try {
             $transactionId = $data->entity->order_id;
@@ -147,7 +147,7 @@ class Index extends \Magento\Framework\App\Action\Action
                 return $transactionSave->save();
             }
         } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
-            $this->_logger->info("Cannot find this entity in Magento2 - possible duplicate webhook - invoiceClosed - TransactionId: {$transactionId}");
+            $this->_logger->info("Cannot find this entity in Magento2 - possible duplicate webhook - invoiceFunded - TransactionId: {$transactionId}");
         } catch (\Exception $e) {
             $this->_logger->info('Caught exception: ', $e->getMessage(), "\n");
         }
