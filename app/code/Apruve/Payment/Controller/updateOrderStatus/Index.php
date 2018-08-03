@@ -50,6 +50,7 @@ class Index extends \Magento\Framework\App\Action\Action
         $success = false;
 
         switch ($action) {
+            case 'invoice.closed':
             case 'invoice.funded':
                 $success = $this->_invoiceFunded($data);
                 break;
