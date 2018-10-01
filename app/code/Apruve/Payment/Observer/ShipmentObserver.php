@@ -40,11 +40,11 @@ class ShipmentObserver implements ObserverInterface
     {
         $this->_shipment = $observer->getEvent()->getShipment();
         $this->_order    = $this->_shipment->getOrder();
-	    $payment = $this->_order->getPayment();
+        $payment = $this->_order->getPayment();
 
-	    if($payment->getMethod() != 'apruve') {
-		    return true;
-	    }
+        if ($payment->getMethod() != 'apruve') {
+            return true;
+        }
 
         // Calculate shipped quantity
         $itemQty = $this->_getShippedItemQty($this->_shipment);

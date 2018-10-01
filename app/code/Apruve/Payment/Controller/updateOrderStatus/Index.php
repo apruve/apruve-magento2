@@ -24,8 +24,8 @@ class Index extends \Magento\Framework\App\Action\Action
         \Magento\Framework\DB\Transaction $transaction,
         \Apruve\Payment\Helper\Data $helper,
         \Psr\Log\LoggerInterface $logger //log injection
-    )
-    {
+    ) {
+    
         $this->resultPageFactory = $resultPageFactory;
         $this->jsonHelper        = $jsonHelper;
         $this->order             = $order;
@@ -41,7 +41,7 @@ class Index extends \Magento\Framework\App\Action\Action
 
     public function execute()
     {
-        if ( ! $this->_validate()) {
+        if (! $this->_validate()) {
             return;
         };
 
@@ -51,12 +51,13 @@ class Index extends \Magento\Framework\App\Action\Action
 
         switch ($action) {
             case 'invoice.closed':
-                $success = $this->_invoiceClosed($data);
+            case 'invoice.funded':
+                $success = $this->_invoiceFunded($data);
                 break;
             // cancelled is used in docs, canceled live
             case 'order.canceled':
             case 'order.cancelled':
-            $success = $this->_cancelOrder($data);
+                $success = $this->_cancelOrder($data);
                 break;
 
             case 'payment_term.accepted':
@@ -64,12 +65,11 @@ class Index extends \Magento\Framework\App\Action\Action
                 break;
         }
 
-        if($success){
+        if ($success) {
             http_response_code(200);
         } else {
             http_response_code(404);
         }
-
     }
 
     protected function _validate()
@@ -115,14 +115,14 @@ class Index extends \Magento\Framework\App\Action\Action
         return json_decode($data);
     }
 
-    protected function _invoiceClosed($data)
+    protected function _invoiceFunded($data)
     {
-        $this->_logger->debug('apruve_invoiceClosed');
+        $this->_logger->debug('apruve_invoiceFunded');
 
         try {
             $transactionId = $data->entity->order_id;
             $this->payments->addAttributeToFilter('last_trans_id', $transactionId);
-            if ( ! $this->payments->getSize()) {
+            if (! $this->payments->getSize()) {
                 return;
             }
 
@@ -147,10 +147,10 @@ class Index extends \Magento\Framework\App\Action\Action
 
                 return $transactionSave->save();
             }
-        } catch (\Magento\Framework\Exception\NoSuchEntityException $e){
-            $this->_logger->info("Cannot find this entity in Magento2 - possible duplicate webhook - invoiceClosed - TransactionId: {$transactionId}");
-        } catch (Exception $e) {
-            $this->_logger->info('Caught exception: ',  $e->getMessage(), "\n");
+        } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
+            $this->_logger->info("Cannot find this entity in Magento2 - possible duplicate webhook - invoiceFunded - TransactionId: {$transactionId}");
+        } catch (\Exception $e) {
+            $this->_logger->info('Caught exception: ', $e->getMessage(), "\n");
         }
 
         return $this;
@@ -163,16 +163,16 @@ class Index extends \Magento\Framework\App\Action\Action
         try {
             $transactionId = $data->entity->id;
             $this->payments->addAttributeToFilter('last_trans_id', $transactionId);
-            if ( ! $this->payments->getSize()) {
+            if (! $this->payments->getSize()) {
                 return;
             }
 
             $orderId = $this->payments->getFirstItem()->getParentId();
             return $this->orderManagement->cancel($orderId);
-        } catch (\Magento\Framework\Exception\NoSuchEntityException $e){
+        } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
             $this->_logger->info("Cannot find this entity in Magento2 - possible duplicate webhook - cancelOrder - TransactionId: {$transactionId}");
-        } catch (Exception $e) {
-            $this->_logger->info('Caught exception: ',  $e->getMessage(), "\n");
+        } catch (\Exception $e) {
+            $this->_logger->info('Caught exception: ', $e->getMessage(), "\n");
         }
     }
 
@@ -184,10 +184,10 @@ class Index extends \Magento\Framework\App\Action\Action
             $this->order->loadByIncrementId($data->entity->merchant_order_id);
             $this->order->setStatus('apruve_buyer_approved');
             return $this->order->save();
-        } catch (\Magento\Framework\Exception\NoSuchEntityException $e){
+        } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
             $this->_logger->info("Cannot find this entity in Magento2 - possible duplicate webhook - paymentTermAccepted - MerchantOrderId: {$data->entity->merchant_order_id}");
-        } catch (Exception $e) {
-            $this->_logger->info('Caught exception: ',  $e->getMessage(), "\n");
+        } catch (\Exception $e) {
+            $this->_logger->info('Caught exception: ', $e->getMessage(), "\n");
         }
         return $this;
     }

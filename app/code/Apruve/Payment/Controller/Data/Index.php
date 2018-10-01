@@ -35,7 +35,7 @@ class Index extends \Magento\Framework\App\Action\Action
         $poNumber = $this->request->getParam('poNumber');
         $totals   = $quote->getTotals();
 
-        if ( ! empty($poNumber) && $poNumber != 'undefined') {
+        if (! empty($poNumber) && $poNumber != 'undefined') {
             $order['po_number'] = $poNumber;
         } else {
             if (isset($order['po_number'])) {
@@ -69,7 +69,7 @@ class Index extends \Magento\Framework\App\Action\Action
                 }
             }
 
-            if ( ! $hasDiscountItem) {
+            if (! $hasDiscountItem) {
                 $order['line_items'][] = $discountItem;
             }
         } else {
@@ -98,7 +98,7 @@ class Index extends \Magento\Framework\App\Action\Action
         $concatString = $this->helper->getApiKey();
 
         foreach ($order as $val) {
-            if ( ! is_array($val)) {
+            if (! is_array($val)) {
                 $concatString .= $val;
             } else {
                 foreach ($val as $v) {
