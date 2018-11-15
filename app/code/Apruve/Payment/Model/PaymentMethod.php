@@ -7,6 +7,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     const CODE = 'apruve';
     const DISCOUNT = 'Discount';
 
+    const AUTHORIZE_ACTION = 'finalize';
     const CANCEL_ACTION = 'cancel';
     const FINALIZE_ACTION = 'finalize';
 
@@ -42,9 +43,112 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         return $this;
     }
 
-    public function capture(\Magento\Payment\Model\InfoInterface $payment, $amount)
+    public function authorize(\Magento\Payment\Model\InfoInterface $payment, $amount) {
+        $info = $this->getInfoInstance();
+        $token = $info->getAdditionalInformation()['aid'];
+
+        if(!empty($token)) {
+            $response = $this->_apruve(self::AUTHORIZE_ACTION, $token);
+            if (!isset($response->id)) {
+                throw new \Magento\Framework\Validator\Exception(__('Payment authorize error.'));
+            }
+
+            $payment->setTransactionId($token)->setIsTransactionClosed(0);
+
+            // If Reserved Order ID is not correct
+            $order = $payment->getOrder();
+            if ($response->merchant_order_id != $order->getIncrementId()) {
+                ;
+            }
+            {
+                $this->_updateMerchantID($token, $order->getIncrementId());
+            }
+        } else {
+            $offline = true;
+            $this->authorize_offline_order($payment, $amount, $offline);
+        }
+
+    }
+
+    public function authorize_offline_order(\Magento\Payment\Model\InfoInterface $payment, $amount)
     {
-        parent::capture($payment, $amount);
+        $order = $payment->getOrder();
+
+        # Authorize the order
+        $corporateAccount = $this->_getCorporateAccount($order->getCustomerEmail());
+        $buyer            = $this->_getBuyer($corporateAccount, $order->getCustomerEmail());
+        if (empty($buyer->id)) {
+            throw new \Magento\Framework\Validator\Exception(__('Cannot find Apruve corporate account for that customer'));
+        }
+        /**Validate*/
+        if ($amount <= 0) {
+            throw new \Magento\Framework\Validator\Exception(__('Invalid amount for capture.'));
+        }
+        $data                        = [];
+        $data['merchant_id']         = $this->_getMerchantKey();
+        $data['merchant_order_id']   = $order->getIncrementId();
+        $data['shopper_id']          = $buyer->id;
+        $data['amount_cents']        = ( $order->getPayment()->getData('amount_ordered') ) * 100;
+        $data['currency']            = $order->getData('base_currency_code');
+        $data['shipping_cents']      = $order->getData('shipping_amount') * 100;
+        $data['tax_cents']           = $order->getData('tax_amount') * 100;
+        $data['merchant_notes']      = '';
+        $data['merchant_invoice_id'] = '';
+        $data['due_at']              = '';
+        $data['order_items']         = [];
+        $data['final_on_create']     = 'false';
+        $data['invoice_on_create']   = 'false';
+        $data['payment_term']        = [ 'corporate_account_id' => $corporateAccount->id ];
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $product       = $objectManager->get('Magento\Catalog\Model\Product');
+        $helper        = $objectManager->get('\Apruve\Payment\Helper\Data');
+        foreach ($order->getAllVisibleItems() as $item) {
+            if ($item->getParentItem()) {
+                continue;
+            }
+            $product->clearInstance();
+            $product->load($item->getProductId());
+            $lineItem = [];
+            $lineItem['price_ea_cents']    = $item->getData('price') * 100;
+            $lineItem['quantity']          = $item->getQtyOrdered();
+            $lineItem['price_total_cents'] = $lineItem['price_ea_cents'] * $lineItem['quantity'];
+            $lineItem['currency']          = $order->getData('order_currency_code');
+            $lineItem['title']             = $item->getData('name');
+            $lineItem['merchant_notes']    = '';
+            $lineItem['description']       = $item->getData('name');
+            $lineItem['sku']               = $item->getData('sku');
+            $lineItem['variant_info']      = '';
+            $lineItem['vendor']            = '';
+            $lineItem['view_product_url']  = $product->getProductUrl();
+            $data['order_items'][] = $lineItem;
+        }
+        /**Add Discount Item*/
+        $discount = $order->getDiscountAmount();
+        if ($discount < 0) {
+            $discountItem                      = [];
+            $discountItem['price_ea_cents']    = (int) ( $discount * 100 );
+            $discountItem['quantity']          = 1;
+            $discountItem['price_total_cents'] = (int) ( $discount * 100 );
+            $discountItem['currency']          = $order->getData('order_currency_code');
+            $discountItem['title']             = self::DISCOUNT;
+            $discountItem['merchant_notes']    = '';
+            $discountItem['description']       = self::DISCOUNT;
+            $discountItem['sku']               = self::DISCOUNT;
+            $discountItem['variant_info']      = '';
+            $discountItem['vendor']            = '';
+            $discountItem['view_product_url']  = $helper->getStoreUrl();
+            $data['order_items'][] = $discountItem;
+        }
+        $response = $this->_apruve('', '', json_encode($data));
+        if (! isset($response->id)) {
+            throw new \Magento\Framework\Validator\Exception(__('Apruve order creation error. '));
+        }
+        $token = $response->id;
+        $payment->setParentTransactionId(null);
+        $payment->setAmount($amount)->setTransactionId($token)->setIncrementalId($token);
+        $payment->setIncrementId($token)->setIsTransactionClosed(0);
+        $order->save();
+        return $this;
     }
 
     public function validate()
@@ -68,26 +172,25 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         return 'adminhtml' === $state->getAreaCode();
     }
 
-    public function authorize(\Magento\Payment\Model\InfoInterface $payment, $amount)
-    {
+    public function capture(\Magento\Payment\Model\InfoInterface $payment, $amount, $offline = false) {
         $order = $payment->getOrder();
-
-        # Authorize the order
-        $corporateAccount = $this->_getCorporateAccount($order->getCustomerEmail());
-        $buyer            = $this->_getBuyer($corporateAccount, $order->getCustomerEmail());
-        if (empty($buyer->id)) {
-            throw new \Magento\Framework\Validator\Exception(__('Cannot find Apruve corporate account for that customer'));
-        }
+        $data = $payment->getAdditionalInformation();
+        $token = $data['aid'];
 
         /**Validate*/
         if ($amount <= 0) {
             throw new \Magento\Framework\Validator\Exception(__('Invalid amount for capture.'));
         }
 
+        /**Create Invoice*/
+        $invoices = $order->getInvoiceCollection();
+        foreach ($invoices as $invoice) {
+            $invoiceId = $invoice->getId();
+        }
+
         $data                        = [];
         $data['merchant_id']         = $this->_getMerchantKey();
         $data['merchant_order_id']   = $order->getIncrementId();
-        $data['shopper_id']          = $buyer->id;
         $data['amount_cents']        = ( $order->getPayment()->getData('amount_ordered') ) * 100;
         $data['currency']            = $order->getData('base_currency_code');
         $data['shipping_cents']      = $order->getData('shipping_amount') * 100;
@@ -98,7 +201,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $data['order_items']         = [];
         $data['final_on_create']     = 'false';
         $data['invoice_on_create']   = 'false';
-        $data['payment_term']        = [ 'corporate_account_id' => $corporateAccount->id ];
 
 
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
@@ -149,17 +251,14 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             $data['order_items'][] = $discountItem;
         }
 
-        $response = $this->_apruve('', '', json_encode($data));
+        $response = $this->_apruve('', $token, json_encode($data));
         if (! isset($response->id)) {
             throw new \Magento\Framework\Validator\Exception(__('Apruve order creation error. '));
         }
 
-        $token = $response->id;
-
         $payment->setParentTransactionId(null);
-        $payment->setAmount($amount)->setTransactionId($token)->setIncrementalId($token);
-        $payment->setIncrementId($token)->setIsTransactionClosed(0);
-        $order->save();
+        $payment->setAmount($amount)->setTransactionId( $response->id)->setIncrementalId( $response->id);
+        $payment->setIncrementId( $response->id)->setIsTransactionClosed(0);
 
         return $this;
     }
@@ -228,7 +327,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             return json_decode($response);
         }
 
-        throw new \Magento\Framework\Exception\LocalizedException(__('Could not complete operation with ' . $object));
+        throw new \Magento\Framework\Exception\LocalizedException(__('Could not complete operation with object ' . $object));
     }
 
     protected function _getMerchantKey()
