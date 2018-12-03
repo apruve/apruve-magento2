@@ -127,11 +127,16 @@ class ShipmentObserver implements ObserverInterface
         $token = $this->_order->getPayment()->getLastTransId();
 
         try {
-            if ($token && $this->_order->getId() && $this->_order->getPayment()->getMethod() == self::CODE && $this->_order->canInvoice()) {
+            if (!empty($token) && $this->_order->getId() && $this->_order->getPayment()->getMethod() == self::CODE && $this->_order->canInvoice()) {
+
                 // Create invoice
                 $invoice = $this->_invoiceService->prepareInvoice($this->_order, $itemQty);
                 $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
+
+                $data = $this->_getInvoiceData($invoice);
+
                 $invoice->register();
+
                 $transactionSave = $this->_transaction->addObject(
                     $invoice
                 )->addObject(
@@ -139,21 +144,15 @@ class ShipmentObserver implements ObserverInterface
                 );
                 $transactionSave->save();
 
-                $data = $this->_getInvoiceData($invoice);
+                throw new \Magento\Framework\Validator\Exception(__('$invoice' . $invoice->getLastTransId()));
 
-                $response = $this->_apruve('invoices', $token, $data);
-                if (! isset($response->id)) {
-                    throw new \Magento\Framework\Validator\Exception(__('Apruve invoice creation error.'));
-                }
-
-                $invoice->setTransactionId($response->id);
                 return $invoice;
             }
         } catch (\Exception $e) {
-            throw new \Magento\Framework\Validator\Exception(__('Apruve invoice creation error'));
+            throw new \Magento\Framework\Validator\Exception(__('Apruve invoice creation error2.' . $e->getMessage()));
         }
 
-        throw new \Magento\Framework\Validator\Exception(__('Apruve invoice creation error'));
+        throw new \Magento\Framework\Validator\Exception(__('Apruve invoice creation error3.'));
     }
 
     protected function _getInvoiceData($invoice, $itemQty = null)
@@ -240,56 +239,6 @@ class ShipmentObserver implements ObserverInterface
         } else {
             return false;
         }
-    }
-
-    protected function _apruve($action, $token, $data = '', $object = 'orders', $requestType = 'POST')
-    {
-        $url = sprintf("https://%s.apruve.com/api/v4/%s", $this->method->getConfigData('mode'), $object);
-
-        if (! empty($token)) {
-            // Here we need to remove "-void", etc.
-            $token = preg_replace('/\-.*/', '', $token);
-            $url   = sprintf($url . "/%s", $token);
-        }
-
-        if (! empty($action)) {
-            $url = sprintf($url . "/%s", $action);
-        }
-
-        $curl = curl_init();
-
-        curl_setopt_array($curl, [
-            CURLOPT_URL            => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING       => '',
-            CURLOPT_MAXREDIRS      => 10,
-            CURLOPT_TIMEOUT        => 30,
-            CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST  => $requestType,
-            CURLOPT_POSTFIELDS     => $data,
-            CURLOPT_HTTPHEADER     => [
-                'accept: application/json',
-                'apruve-api-key: ' . $this->method->getConfigData('api_key'),
-                'content-type: application/json'
-            ]
-        ]);
-
-
-        $response   = curl_exec($curl);
-        $httpStatus = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        $error      = curl_error($curl);
-        curl_close($curl);
-
-        if ($error) {
-            $parsed = json_decode($response);
-            throw new \Magento\Framework\Exception\LocalizedException(__('Bad Response from Apruve:' . $parsed->error));
-        }
-
-        if ($httpStatus == 200 || $httpStatus == 201) {
-            return json_decode($response);
-        }
-
-        return false;
     }
 
     protected function _getPartialShipmentAmount()

@@ -58,7 +58,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                 throw new \Magento\Framework\Validator\Exception(__('Payment authorize error.'));
             }
 
-            $payment->setTransactionId($token)->setIsTransactionClosed(0);
+            $payment->setLastTransId($token)->setTransactionId($token)->setIsTransactionClosed(0);
 
             // If Reserved Order ID is not correct
             $order = $payment->getOrder();
@@ -72,6 +72,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             if (!isset($response->id)) {
                 throw new \Magento\Framework\Validator\Exception(__('Offline order creation error.'));
             }
+            $payment->setLastTransId($response->id)->setTransactionId($response->id)->setIsTransactionClosed(false);
         }
         return $this;
     }
@@ -102,9 +103,9 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->generate_order_data($payment, $amount);
         $this->generate_invoice_data($payment, $amount);
 
-        $response = $this->_apruve(self::CAPTURE_ACTION, $this->_token, json_encode($this->_order_data));
+        $response = $this->_apruve(self::CAPTURE_ACTION, $payment->getLastTransId(), json_encode($this->_order_data));
         if (!isset($response->id)) {
-            throw new \Magento\Framework\Validator\Exception(__('Payment capture error.'));
+            throw new \Magento\Framework\Validator\Exception(__('Invoice creation error.'));
         }
 
         $payment
