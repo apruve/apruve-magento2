@@ -101,7 +101,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     public function capture(\Magento\Payment\Model\InfoInterface $payment, $amount)
     {
         $this->generate_order_data($payment, $amount);
-        $this->generate_invoice_data($payment, $amount);
 
         $response = $this->_apruve(self::CAPTURE_ACTION, $payment->getLastTransId(), json_encode($this->_order_data));
         if (!isset($response->id)) {
@@ -127,21 +126,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->_order_data['finalize_on_create'] = 'true';
     }
 
-    protected function generate_invoice_data(\Magento\Payment\Model\InfoInterface $payment, $amount)
-    {
-        $this->_order_data = $payment->getAdditionalInformation();
-        $token = $this->_order_data['aid'];
-
-        /**Create Invoice*/
-        $invoices = $this->_order->getInvoiceCollection();
-        foreach ($invoices as $invoice) {
-            $invoiceId = $invoice->getId();
-        }
-        $this->_order_data['merchant_invoice_id'] = $invoiceId;
-        $this->_order_data['finalize_on_create'] = 'true';
-    }
-
-    protected function generate_order_data(\Magento\Payment\Model\InfoInterface $payment, $amount)
+    protected function generate_order_data(\Magento\Payment\Model\InfoInterface $payment, $amount, $newOrder = true)
     {
         /**Validate*/
         if ($amount <= 0) {
@@ -160,9 +145,10 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->_order_data['shipping_cents'] = $this->_order->getData('shipping_amount') * 100;
         $this->_order_data['tax_cents'] = $this->_order->getData('tax_amount') * 100;
         $this->_order_data['merchant_notes'] = '';
-        $this->_order_data['merchant_invoice_id'] = '';
-        $this->_order_data['due_at'] = '';
+//        $this->_order_data['merchant_invoice_id'] = '';
+//        $this->_order_data['due_at'] = '';
         $this->_order_data['order_items'] = [];
+        $this->_order_data['invoice_items'] = [];
         $this->_order_data['invoice_on_create'] = 'false';
 
 
@@ -192,7 +178,14 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             $lineItem['vendor'] = '';
             $lineItem['view_product_url'] = $product->getProductUrl();
 
-            $this->_order_data['order_items'][] = $lineItem;
+            if($newOrder)
+            {
+                $this->_order_data['order_items'][] = $lineItem;
+            } else
+            {
+                $this->_order_data['invoice_items'][] = $lineItem;
+            }
+
         }
 
         /**Add Discount Item*/
@@ -211,7 +204,13 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             $discountItem['vendor'] = '';
             $discountItem['view_product_url'] = $helper->getStoreUrl();
 
-            $this->_order_data['order_items'][] = $discountItem;
+            if($newOrder)
+            {
+                $this->_order_data['order_items'][] = $discountItem;
+            } else
+            {
+                $this->_order_data['invoice_items'][] = $discountItem;
+            }
         }
     }
 

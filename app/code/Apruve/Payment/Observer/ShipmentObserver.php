@@ -67,7 +67,7 @@ class ShipmentObserver implements ObserverInterface
 
         // Create Shipment
 
-        $token  = $this->_invoice->getTransactionId();
+        $token  = $payment->getTransactionId();
         $tracks = $this->_shipment->getAllTracks();
         $track  = end($tracks);
         $amount = 0;
@@ -143,8 +143,6 @@ class ShipmentObserver implements ObserverInterface
                     $invoice->getOrder()
                 );
                 $transactionSave->save();
-
-                throw new \Magento\Framework\Validator\Exception(__('$invoice' . $invoice->getLastTransId()));
 
                 return $invoice;
             }
@@ -351,6 +349,8 @@ class ShipmentObserver implements ObserverInterface
 
         if ($httpStatus == 200 || $httpStatus == 201) {
             return json_decode($response);
+        } else {
+            throw new \Magento\Framework\Validator\Exception(__('Error creating shipment in Apruve.'));
         }
 
         return false;
