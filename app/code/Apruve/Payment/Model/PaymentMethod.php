@@ -64,6 +64,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             $order = $payment->getOrder();
             if($response->merchant_order_id != $order->getIncrementId()); {
                 $this->_updateMerchantID($token, $order->getIncrementId());
+                $payment->setParentTransactionId($token);
             }
         } else {
             $this->generate_order_data($payment, $amount);
@@ -72,7 +73,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             if (!isset($response->id)) {
                 throw new \Magento\Framework\Validator\Exception(__('Offline order creation error.'));
             }
-            $payment->setLastTransId($response->id)->setTransactionId($response->id)->setIsTransactionClosed(false);
+            $payment->setParentTransactionId($response->id)->setLastTransId($response->id)->setTransactionId($response->id)->setIsTransactionClosed(false);
         }
         return $this;
     }
@@ -100,9 +101,9 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
     public function capture(\Magento\Payment\Model\InfoInterface $payment, $amount)
     {
-        $this->generate_order_data($payment, $amount);
+        $this->generate_order_data($payment, $amount, false);
 
-        $response = $this->_apruve(self::CAPTURE_ACTION, $payment->getLastTransId(), json_encode($this->_order_data));
+        $response = $this->_apruve(self::CAPTURE_ACTION, $payment->getParentTransactionId(), json_encode($this->_order_data));
         if (!isset($response->id)) {
             throw new \Magento\Framework\Validator\Exception(__('Invoice creation error.'));
         }
@@ -145,11 +146,13 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->_order_data['shipping_cents'] = $this->_order->getData('shipping_amount') * 100;
         $this->_order_data['tax_cents'] = $this->_order->getData('tax_amount') * 100;
         $this->_order_data['merchant_notes'] = '';
-//        $this->_order_data['merchant_invoice_id'] = '';
-//        $this->_order_data['due_at'] = '';
-        $this->_order_data['order_items'] = [];
-        $this->_order_data['invoice_items'] = [];
-        $this->_order_data['invoice_on_create'] = 'false';
+        if($newOrder)
+        {
+            $this->_order_data['order_items'] = [];
+            $this->_order_data['invoice_on_create'] = 'false';
+        } else {
+            $this->_order_data['invoice_items'] = [];
+        }
 
 
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
@@ -278,7 +281,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             return json_decode($response);
         }
 
-        throw new \Magento\Framework\Exception\LocalizedException(__('Could not complete operation with object ' . $object));
+        throw new \Magento\Framework\Exception\LocalizedException('Could not complete operation with object ' . json_decode($response));
     }
 
     protected function _getMerchantKey()

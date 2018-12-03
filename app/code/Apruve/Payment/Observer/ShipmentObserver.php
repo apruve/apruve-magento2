@@ -46,6 +46,12 @@ class ShipmentObserver implements ObserverInterface
             return true;
         }
 
+        if ($this->_order->getShipmentsCollection()->getSize() <= 1) {
+            $this->_firstShipment = 1;
+        } else {
+            $this->_firstShipment = 0;
+        }
+
         // Calculate shipped quantity
         $itemQty = $this->_getShippedItemQty($this->_shipment);
 
@@ -53,12 +59,6 @@ class ShipmentObserver implements ObserverInterface
         $this->_invoice = $this->_createInvoiceFromShipment($itemQty);
         if (! $this->_invoice) {
             throw new \Magento\Framework\Validator\Exception(__('Problem creating invoice in Apruve.'));
-        }
-
-        if ($this->_order->getShipmentsCollection()->getSize() <= 1) {
-            $this->_firstShipment = 1;
-        } else {
-            $this->_firstShipment = 0;
         }
 
         if ($this->_order->getPayment()->getMethod() != self::CODE) {
@@ -134,6 +134,11 @@ class ShipmentObserver implements ObserverInterface
                 $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
 
                 $data = $this->_getInvoiceData($invoice);
+
+                $invoice->setSubtotal($this->_getPartialShipmentAmount() * 100);
+                $invoice->setBaseSubtotal($this->_getPartialShipmentAmount() * 100);
+                $invoice->setGrandTotal($this->_getPartialShipmentAmount() * 100);
+                $invoice->setBaseGrandTotal($this->_getPartialShipmentAmount() * 100);
 
                 $invoice->register();
 
