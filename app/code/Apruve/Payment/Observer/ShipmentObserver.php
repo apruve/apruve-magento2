@@ -152,10 +152,10 @@ class ShipmentObserver implements ObserverInterface
                 return $invoice;
             }
         } catch (\Exception $e) {
-            throw new \Magento\Framework\Validator\Exception(__('Apruve invoice creation error2.' . $e->getMessage()));
+            throw new \Magento\Framework\Validator\Exception(__('Apruve invoice creation.' . $e->getMessage()));
         }
 
-        throw new \Magento\Framework\Validator\Exception(__('Apruve invoice creation error3.'));
+        throw new \Magento\Framework\Validator\Exception(__('Apruve invoice creation.'));
     }
 
     protected function _getInvoiceData($invoice, $itemQty = null)
