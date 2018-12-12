@@ -6,9 +6,6 @@
   "license": [
     "MPL-2.0"
   ],
-  "require": {
-    "php": "~5.5.0|~5.6.0|~7.0.0|~7.1"
-  },
   "support": {
     "email": "support@apruve.com",
     "issues": "https://github.com/apruve/apruve-magento2/issues",
