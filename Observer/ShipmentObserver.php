@@ -125,10 +125,23 @@ class ShipmentObserver implements ObserverInterface
     protected function _createInvoiceFromShipment($itemQty)
     {
         $token = $this->_order->getPayment()->getLastTransId();
+        $stage = 0
+
+        if(empty($token)) {
+            throw new \Magento\Framework\Validator\Exception(__('Token empty'));
+        }
+        if(!$this->_order->getId()) {
+            throw new \Magento\Framework\Validator\Exception(__('_order->getId() is falsey'));
+        }
+        if($this->_order->getPayment()->getMethod() != self::CODE) {
+            throw new \Magento\Framework\Validator\Exception(__('Payment method wrong: ' . $this->_order->getPayment()->getMethod() ));
+        }
+        if(!$this->_order->canInvoice()) {
+            throw new \Magento\Framework\Validator\Exception(__('Cannot invoice'));
+        }
 
         try {
             if (!empty($token) && $this->_order->getId() && $this->_order->getPayment()->getMethod() == self::CODE && $this->_order->canInvoice()) {
-
                 // Create invoice
                 $invoice = $this->_invoiceService->prepareInvoice($this->_order, $itemQty);
                 $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
