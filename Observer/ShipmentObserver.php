@@ -125,9 +125,7 @@ class ShipmentObserver implements ObserverInterface
     protected function _createInvoiceFromShipment($itemQty)
     {
         $token = $this->_order->getPayment()->getLastTransId();
-        $stage = 0
-
-        if(empty($token)) {
+        if (empty($token)) {
             throw new \Magento\Framework\Validator\Exception(__('Token empty'));
         }
         if(!$this->_order->getId()) {
