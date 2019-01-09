@@ -135,7 +135,7 @@ class ShipmentObserver implements ObserverInterface
             throw new \Magento\Framework\Validator\Exception(__('Payment method wrong: ' . $this->_order->getPayment()->getMethod() ));
         }
         if(!$this->_order->canInvoice()) {
-            throw new \Magento\Framework\Validator\Exception(__('Cannot invoice'));
+            throw new \Magento\Framework\Validator\Exception(__('Cannot invoice. (Did you manually create an invoice in Magento?)'));
         }
 
         try {
