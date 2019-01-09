@@ -64,7 +64,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             $order = $payment->getOrder();
             if($response->merchant_order_id != $order->getIncrementId()); {
                 $this->_updateMerchantID($token, $order->getIncrementId());
-                $payment->setParentTransactionId($token);
             }
         } else {
             $this->generate_order_data($payment, $amount);
@@ -73,7 +72,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             if (!isset($response->id)) {
                 throw new \Magento\Framework\Validator\Exception(__('Offline order creation error.'));
             }
-            $payment->setParentTransactionId($response->id)->setLastTransId($response->id)->setTransactionId($response->id)->setIsTransactionClosed(false);
+            $payment->setLastTransId($response->id)->setTransactionId($response->id)->setIsTransactionClosed(false);
         }
         return $this;
     }
