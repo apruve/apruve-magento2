@@ -12,6 +12,10 @@ define([
         var url = window.checkoutConfig.payment.apruve.hash_reload;
         var order = window.checkoutConfig.payment.apruve.order;
 
+        if(typeof order !== "string") {
+            order = JSON.stringify(order);
+        }
+
         jQuery.ajax({
             url: url,
             data: 'order=' + order + '&poNumber=' + poNumber,
