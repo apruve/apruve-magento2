@@ -12,6 +12,7 @@ class Toolbar
     public function __construct(\Psr\Log\LoggerInterface $logger)
     {
         $this->logger = $logger;
+        $this->logger->debug('Constructing toolbar');
     }
 
     public function beforePushButtons(
