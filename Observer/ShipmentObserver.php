@@ -146,10 +146,6 @@ class ShipmentObserver implements ObserverInterface
 
                 $data = $this->_getInvoiceData($invoice);
 
-                $invoice->setSubtotal($this->_getPartialShipmentAmount() * 100);
-                $invoice->setBaseSubtotal($this->_getPartialShipmentAmount() * 100);
-                $invoice->setGrandTotal($this->_getPartialShipmentAmount() * 100);
-                $invoice->setBaseGrandTotal($this->_getPartialShipmentAmount() * 100);
 
                 $invoice->register();
 
