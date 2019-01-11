@@ -12,7 +12,9 @@ The file structure follows Magento's file structure, so if you copy the files in
 
 **Installation Steps**
 
-* Copy the files from this repository into your Magento installation.
+ This repository is hosted on [packagist](https://packagist.org/packages/apruve/module-magento2) for easy installation through composer:
+ 
+* Run `composer require apruve/module-magento2 <version>` from your Magento directory to add the plugin.
 
 * Run "magento setup:upgrade" from your Magento directory.
 
