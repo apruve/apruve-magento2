@@ -12,6 +12,7 @@ class Index extends \Magento\Framework\App\Action\Action
     protected $invoiceService;
     protected $transaction;
     protected $helper;
+    protected $invoice;
 
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
@@ -19,6 +20,7 @@ class Index extends \Magento\Framework\App\Action\Action
         \Magento\Framework\Json\Helper\Data $jsonHelper,
         \Magento\Sales\Model\ResourceModel\Order\Payment\Collection $payments,
         \Magento\Sales\Model\Order $order,
+        \Magento\Sales\Model\Order\Invoice $invoice,
         \Magento\Sales\Api\OrderManagementInterface $orderManagement,
         \Magento\Sales\Model\Service\InvoiceService $invoiceService,
         \Magento\Framework\DB\Transaction $transaction,
@@ -29,6 +31,7 @@ class Index extends \Magento\Framework\App\Action\Action
         $this->resultPageFactory = $resultPageFactory;
         $this->jsonHelper        = $jsonHelper;
         $this->order             = $order;
+        $this->invoice = $invoice;
         $this->payments          = $payments;
         $this->invoiceService    = $invoiceService;
 
@@ -121,32 +124,29 @@ class Index extends \Magento\Framework\App\Action\Action
 
         try {
             $transactionId = $data->entity->order_id;
+            $apruve_order_uuid = $data->entity->order_id;
+            $apruve_invoice_uuid = $data->entity->id;
+            $magento_invoice_increment_id = $data->entity->merchant_invoice_id;
+
+            $this->_logger->debug('Apruve order uuid: ' . $apruve_order_uuid);
+            $this->_logger->debug('Apruve invoice uuid: ' . $apruve_invoice_uuid);
+            $this->_logger->debug('Magento invoice increment id: ' . $magento_invoice_increment_id);
+
             $this->payments->addAttributeToFilter('last_trans_id', $transactionId);
             if (! $this->payments->getSize()) {
                 return;
             }
 
-            $orderId = $this->payments->getFirstItem()->getParentId();
+            $orderId = $this->payments->getFirstItem()->getParentId(); # The parent of a payment is an order
             $this->order->load($orderId);
+            $this->_logger->debug('Loaded order through a payment');
 
-            // Create Invoice
-            if ($this->order->canInvoice()) {
-                $payment = $this->order->getPayment();
-                $payment->setLastTransId($data->entity->id);
-                $payment->setTransactionId($data->entity->id);
+            $this->invoice->loadByIncrementId($magento_invoice_increment_id);
+            $this->_logger->debug('Loaded invoice via increment id: ' . $magento_invoice_increment_id);
+            $this->invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
+            $this->_logger->debug('Invoice payment status updated, saving');
+            return $this->transaction->addObject($this->invoice)->save();
 
-                $invoice = $this->invoiceService->prepareInvoice($this->order);
-                $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
-                $invoice->register();
-                $invoice->save();
-
-                $transactionSave = $this->transaction
-                    ->addObject($invoice)
-                    ->addObject($invoice->getOrder())
-                    ->addObject($payment);
-
-                return $transactionSave->save();
-            }
         } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
             $this->_logger->info("Cannot find this entity in Magento2 - possible duplicate webhook - invoiceFunded - TransactionId: {$transactionId}");
         } catch (\Exception $e) {
