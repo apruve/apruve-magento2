@@ -182,13 +182,18 @@ class Index extends \Magento\Framework\App\Action\Action
 
         try {
             $this->order->loadByIncrementId($data->entity->merchant_order_id);
+            if ($this->order->getEntityId() == null) {
+                $this->_logger->info("Cannot find this entity in Magento2 - possible duplicate webhook - paymentTermAccepted - MerchantOrderId: {$data->entity->merchant_order_id}");
+                return true; // Quietly die and return a 200 code
+            }
             $this->order->setStatus('apruve_buyer_approved');
             return $this->order->save();
         } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
             $this->_logger->info("Cannot find this entity in Magento2 - possible duplicate webhook - paymentTermAccepted - MerchantOrderId: {$data->entity->merchant_order_id}");
         } catch (\Exception $e) {
             $this->_logger->info('Caught exception: ', $e->getMessage(), "\n");
+            return false;
         }
-        return $this;
+        return true;
     }
 }
