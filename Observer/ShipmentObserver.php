@@ -26,7 +26,8 @@ class ShipmentObserver implements ObserverInterface
         \Magento\Framework\DB\Transaction $transaction,
         \Magento\Sales\Model\Service\InvoiceService $invoiceService,
         \Magento\Sales\Api\Data\OrderInterface $order,
-        \Magento\Sales\Api\Data\InvoiceInterface $invoiceInterface
+        \Magento\Sales\Api\Data\InvoiceInterface $invoiceInterface,
+        \Psr\Log\LoggerInterface $logger
     ) {
         $this->method            = $paymentHelper->getMethodInstance(self::CODE);
         $this->_helper           = $helper;
@@ -34,10 +35,12 @@ class ShipmentObserver implements ObserverInterface
         $this->_transaction      = $transaction;
         $this->_order            = $order;
         $this->_invoiceInterface = $invoiceInterface;
+        $this->_logger = $logger;
     }
 
     public function execute(\Magento\Framework\Event\Observer $observer)
     {
+        $this->_logger->debug('Executing shipment observer');
         $this->_shipment = $observer->getEvent()->getShipment();
         $this->_order    = $this->_shipment->getOrder();
         $payment = $this->_order->getPayment();
