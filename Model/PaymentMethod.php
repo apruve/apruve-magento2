@@ -40,15 +40,14 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         \Magento\Payment\Helper\Data $paymentData,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         \Magento\Payment\Model\Method\Logger $parentLogger, // We want a different type of logger that we understand
-        \Psr\Log\LoggerInterface $logger, // This is our logger
         \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
         \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
         array $data = [],
         DirectoryHelper $directory = null)
     {
-        $this->_logger = $logger;
-        parent::__construct($context, $registry, $extensionFactory, $customAttributeFactory, $paymentData, $scopeConfig, $parentLogger, $resource, $resourceCollection, $data, $directory);
-
+        // A logger already exists somewhere in the class hierarchy but I can't find it so I'm forcing a new reference
+        $this->_logger = \Magento\Framework\App\ObjectManager::getInstance()->get('\Psr\Log\LoggerInterface');
+        parent::__construct($context, $registry, $extensionFactory, $customAttributeFactory, $paymentData, $scopeConfig, $parentLogger, $resource, $resourceCollection, $data);
     }
 
     public function isAvailable(\Magento\Quote\Api\Data\CartInterface $quote = null)
