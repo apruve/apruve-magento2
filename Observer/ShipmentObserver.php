@@ -59,8 +59,9 @@ class ShipmentObserver implements ObserverInterface
         $itemQty = $this->_getShippedItemQty($this->_shipment);
 
         // Create invoice
-        $this->_invoice = $this->_createInvoiceFromShipment($itemQty);
-        if (! $this->_invoice) {
+        $apruve_invoice_uuid = $this->_createInvoiceFromShipment($itemQty);
+        $this->_logger->debug("Made an apruve invoice with uuid $apruve_invoice_uuid");
+        if (! $apruve_invoice_uuid) {
             throw new \Magento\Framework\Validator\Exception(__('Problem creating invoice in Apruve.'));
         }
 
@@ -70,7 +71,7 @@ class ShipmentObserver implements ObserverInterface
 
         // Create Shipment
 
-        $token  = $payment->getTransactionId();
+        $token  = $payment->getLastTransId();
         $tracks = $this->_shipment->getAllTracks();
         $track  = end($tracks);
         $amount = 0;
@@ -103,10 +104,11 @@ class ShipmentObserver implements ObserverInterface
         $data['merchant_shipment_id'] = $this->_shipment->getIncrementId();
         $data['shipment_items']       = $this->_getShipmentItems($itemQty);
 
-        $response = $this->_processShipment($token, json_encode($data));
+        $response = $this->_processShipment($apruve_invoice_uuid, json_encode($data));
 
         if (! isset($response->id)) {
             $errorMessage = isset($response->errors) ? $response->errors[0]->title : 'Error Creating Shipment';
+            $this->_logger->debug("Error creating shipment in apruve: $errorMessage");
             throw new \Magento\Framework\Validator\Exception(__($errorMessage));
         }
 
@@ -166,7 +168,7 @@ class ShipmentObserver implements ObserverInterface
                 );
                 $transactionSave->save();
 
-                return $invoice;
+                return $response->id;
             }
         } catch (\Exception $e) {
             throw new \Magento\Framework\Validator\Exception(__('Apruve invoice creation.' . $e->getMessage()));
@@ -346,6 +348,7 @@ class ShipmentObserver implements ObserverInterface
         $apiKey = $this->method->getConfigData('api_key');
         $mode   = $this->method->getConfigData('mode');
         $url    = sprintf("https://%s.apruve.com/api/v4/invoices/%s/shipments", $mode, $token);
+        $this->_logger->debug("Posting a shipment via url: $url");
         $curl   = curl_init();
 
         curl_setopt_array($curl, [
