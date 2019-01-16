@@ -2,6 +2,8 @@
 
 namespace Apruve\Payment\Model;
 
+use Magento\Directory\Helper\Data as DirectoryHelper;
+
 class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 {
     const CODE = 'apruve';
@@ -27,6 +29,27 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     protected $_token = null;
     protected $_order = null;
     protected $_order_data = null;
+    private $_logger;
+
+    // Make our own constructor so that we can inject a logger that we understand, rather than the weird magento wrapper one
+    public function __construct(
+        \Magento\Framework\Model\Context $context,
+        \Magento\Framework\Registry $registry,
+        \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory,
+        \Magento\Framework\Api\AttributeValueFactory $customAttributeFactory,
+        \Magento\Payment\Helper\Data $paymentData,
+        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
+        \Magento\Payment\Model\Method\Logger $parentLogger, // We want a different type of logger that we understand
+        \Psr\Log\LoggerInterface $logger, // This is our logger
+        \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
+        \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
+        array $data = [],
+        DirectoryHelper $directory = null)
+    {
+        $this->_logger = $logger;
+        parent::__construct($context, $registry, $extensionFactory, $customAttributeFactory, $paymentData, $scopeConfig, $parentLogger, $resource, $resourceCollection, $data, $directory);
+
+    }
 
     public function isAvailable(\Magento\Quote\Api\Data\CartInterface $quote = null)
     {
@@ -49,10 +72,13 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
     public function authorize(\Magento\Payment\Model\InfoInterface $payment, $amount)
     {
+        $this->_logger->debug("PaymentMethod::authorize called");
         $info = $this->getInfoInstance();
         $token = $info->getAdditionalInformation()['aid'];
 
         if (!empty($token)) {
+            $this->_logger->debug("Authorizing an online order");
+            // It's an online order, so it has already been created on the apruve side by the checkout js. We just need to finalize it.
             $response = $this->_apruve(self::AUTHORIZE_ACTION, $token);
             if (!isset($response->id)) {
                 throw new \Magento\Framework\Validator\Exception(__('Payment authorize error.'));
@@ -66,8 +92,12 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                 $this->_updateMerchantID($token, $order->getIncrementId());
             }
         } else {
+            // It's an offline order, so apruve has never heard of it.
+            $this->_logger->debug("Authorizing an offline order");
+            // Next two methods build the json we're going to send to apruve and put it in $this->_order_data
             $this->generate_order_data($payment, $amount);
             $this->generate_offline_order_data($payment, $amount);
+            $this->_logger->debug("Built an offline order, about to submit it");
             $response = $this->_apruve(self::OFFLINE_ACTION, $this->_token, json_encode($this->_order_data));
             if (!isset($response->id)) {
                 throw new \Magento\Framework\Validator\Exception(__('Offline order creation error.'));
@@ -79,6 +109,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
     public function validate()
     {
+        $this->_logger->debug("PaymentMethod::validate called");
         $info = $this->getInfoInstance();
         $token = $info->getAdditionalInformation()['aid'];
         if (!isset($token)) {
@@ -90,6 +121,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
     protected function _isAdmin($store = null)
     {
+        $this->_logger->debug("PaymentMethod::_isAdmin called");
         /** @var \Magento\Framework\ObjectManagerInterface $om */
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         /** @var \Magento\Framework\App\State $state */
@@ -100,16 +132,18 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
     public function capture(\Magento\Payment\Model\InfoInterface $payment, $amount)
     {
-        $this->generate_order_data($payment, $amount, false);
-
-        $response = $this->_apruve(self::CAPTURE_ACTION, $payment->getParentTransactionId(), json_encode($this->_order_data));
-        if (!isset($response->id)) {
-            throw new \Magento\Framework\Validator\Exception(__('Invoice creation error.'));
-        }
-
-        $payment
-            ->setAmount($amount)
-            ->setTransactionId($response->id);
+        $this->_logger->debug("PaymentMethod::capture called, doing nothing");
+        // We used to make an invoice here, but I think that's wrong. We should be doing that in the shipment observer instead
+//        $this->generate_order_data($payment, $amount, false);
+//
+//        $response = $this->_apruve(self::CAPTURE_ACTION, $payment->getParentTransactionId(), json_encode($this->_order_data));
+//        if (!isset($response->id)) {
+//            throw new \Magento\Framework\Validator\Exception(__('Invoice creation error.'));
+//        }
+//
+//        $payment
+//            ->setAmount($amount)
+//            ->setTransactionId($response->id);
         return $this;
     }
 
@@ -128,6 +162,9 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
     protected function generate_order_data(\Magento\Payment\Model\InfoInterface $payment, $amount, $newOrder = true)
     {
+        // Fills in the _order_data associative array with data corresponding to either an apruve order or an apurve invoice
+        // If $newOrder is true then makes an order, if $newOrder is false then makes an invoice
+        // TODO: split the two use cases
         /**Validate*/
         if ($amount <= 0) {
             throw new \Magento\Framework\Validator\Exception(__('Invalid amount for capture.'));
@@ -249,6 +286,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             $url = sprintf($url . "/%s", $action);
         }
 
+        $this->_logger->debug("PaymentMethod::_apruve called. Sending $requestType to $url");
         $curl = curl_init();
 
         curl_setopt_array($curl, [
@@ -277,9 +315,10 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         }
 
         if ($httpStatus != 404) {
+            $this->_logger->debug("Got a good response with status code $httpStatus");
             return json_decode($response);
         }
-
+        $this->_logger->debug("Got a bad response with status code $httpStatus, throwing exception");
         throw new \Magento\Framework\Exception\LocalizedException('Could not complete operation with object ' . json_decode($response));
     }
 

@@ -410,6 +410,8 @@ class ShipmentObserver implements ObserverInterface
         if (! empty($action)) {
             $url = sprintf($url . "/%s", $action);
         }
+
+        $this->_logger->debug("ShipmentObserver::_apruve called. Sending $requestType to $url");
         $curl = curl_init();
         curl_setopt_array($curl, [
             CURLOPT_URL            => $url,
@@ -430,6 +432,7 @@ class ShipmentObserver implements ObserverInterface
         $httpStatus = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         $error      = curl_error($curl);
         curl_close($curl);
+        $this->_logger->debug("Got a response with status code $httpStatus");
         if ($error) {
             $parsed = json_decode($response);
             throw new \Magento\Framework\Exception\LocalizedException(__('Bad Response from Apruve:' . $parsed->error));
