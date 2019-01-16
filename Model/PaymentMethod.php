@@ -29,7 +29,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     protected $_token = null;
     protected $_order = null;
     protected $_order_data = null;
-    private $_logger;
+    protected $_logger;
 
     // Make our own constructor so that we can inject a logger that we understand, rather than the weird magento wrapper one
     public function __construct(
