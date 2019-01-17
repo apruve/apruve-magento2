@@ -154,8 +154,13 @@ class Index extends \Magento\Framework\App\Action\Action
 
             $this->invoice->loadByIncrementId($magento_invoice_increment_id);
             $this->_logger->debug('Loaded invoice via increment id: ' . $magento_invoice_increment_id);
-            $this->invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
-            $this->_logger->debug('Invoice payment status updated, saving');
+            if ($this->invoice->canCapture()) {
+                $this->_logger->debug('Invoice can be captured. Capturing');
+                $this->invoice->capture();
+                $this->_logger->debug('Captured');
+            } else {
+                $this->_logger->debug("ERROR: Invoice $magento_invoice_increment_id cannot be captured in response to apruve funding webhook");
+            }
             return $this->transaction->addObject($this->invoice)->save();
 
         } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
