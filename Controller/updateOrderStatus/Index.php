@@ -184,12 +184,14 @@ class Index extends \Magento\Framework\App\Action\Action
 
     protected function _paymentTermAccepted($data)
     {
-        $apruve_order_token = $data->entity->id;
-        $magento_order_increment_id = $data->entity->merchant_order_id;
+        $apruve_order_token = $data->entity->purchase_order_id;
+        // Apruve doesn't send back our id for some reason
+        $apruve_order = $this->helper->runApruveGetRequest($data->entity->links->order);
+        $magento_order_increment_id = $apruve_order->merchant_order_id;
         $this->_logger->debug("apruve_paymentTermAccepted webhook called for apruve order $apruve_order_token with magento increment $magento_order_increment_id");
 
         try {
-            $this->order->loadByIncrementId($data->entity->merchant_order_id);
+            $this->order->loadByIncrementId($magento_order_increment_id);
             if ($this->order->getEntityId() == null) {
                 $this->_logger->debug("Cannot find this entity in Magento2 - possible duplicate webhook - paymentTermAccepted - MerchantOrderId: {$data->entity->merchant_order_id}");
                 return true; // Quietly die and return a 200 code
