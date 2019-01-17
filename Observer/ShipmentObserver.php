@@ -148,6 +148,8 @@ class ShipmentObserver implements ObserverInterface
                 // Create invoice
                 $invoice = $this->_invoiceService->prepareInvoice($this->_order, $itemQty);
                 $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
+                $invoice->register();
+                $invoice->save(); // Need to save now so we will have an invoice id to send to apruve
 
                 $data = $this->_getInvoiceData($invoice);
 
@@ -157,9 +159,6 @@ class ShipmentObserver implements ObserverInterface
                     throw new \Magento\Framework\Validator\Exception(__('Apruve invoice creation error.'));
                 }
                 $invoice->setTransactionId($response->id); // Apruve invoice id gets set on the invoice, and vice versa
-
-
-                $invoice->register();
 
                 $transactionSave = $this->_transaction->addObject(
                     $invoice
