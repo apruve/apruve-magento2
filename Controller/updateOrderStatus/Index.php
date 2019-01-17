@@ -132,7 +132,12 @@ class Index extends \Magento\Framework\App\Action\Action
             $transactionId = $data->entity->order_id;
             $apruve_order_uuid = $data->entity->order_id;
             $apruve_invoice_uuid = $data->entity->id;
-            $magento_invoice_increment_id = $data->entity->merchant_invoice_id;
+            $apruve_invoice = $this->helper->runApruveGetRequest($data->entity->links->self); // Get a full invoice
+            $magento_invoice_increment_id = $apruve_invoice->merchant_invoice_id;
+            if($magento_invoice_increment_id == null) {
+                $this->_logger->debug("Null magento invoice id returned for apruve invoice $apruve_invoice_uuid. No way to find it in magento");
+                return false;
+            }
 
             $this->_logger->debug('Apruve order uuid: ' . $apruve_order_uuid);
             $this->_logger->debug('Apruve invoice uuid: ' . $apruve_invoice_uuid);
@@ -154,9 +159,9 @@ class Index extends \Magento\Framework\App\Action\Action
             return $this->transaction->addObject($this->invoice)->save();
 
         } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
-            $this->_logger->info("Cannot find this entity in Magento2 - possible duplicate webhook - invoiceFunded - TransactionId: {$transactionId}");
+            $this->_logger->debug("Cannot find this entity in Magento2 - possible duplicate webhook - invoiceFunded - TransactionId: {$transactionId}");
         } catch (\Exception $e) {
-            $this->_logger->info('Caught exception: ', $e->getMessage(), "\n");
+            $this->_logger->debug('Caught exception: ', $e->getMessage(), "\n");
         }
 
         return $this;

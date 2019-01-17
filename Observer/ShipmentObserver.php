@@ -207,6 +207,13 @@ class ShipmentObserver implements ObserverInterface
         /* latest shipment comment */
         // $comment = $this->_getInvoiceComment($invoice);
 
+        $magento_invoice_id = $invoice->getIncrementId();
+        $this->_logger->debug("Preparing to create an apruve invoice from magento invoice $magento_invoice_id");
+
+        if (! isset($magento_invoice_id) || $magento_invoice_id == null) {
+            $this->_logger->debug("ERROR - No magento invoice id for this invoice yet, it will be lost when it is sent to apruve!");
+        }
+
         /* prepare invoice data */
         $data = json_encode([
             'invoice' => [
@@ -215,7 +222,7 @@ class ShipmentObserver implements ObserverInterface
                 'shipping_cents'      => $this->convertPrice($invoice->getBaseShippingAmount()),
                 'tax_cents'           => $this->convertPrice($invoice->getBaseTaxAmount()),
                 // 'merchant_notes' => $comment->getComment(),
-                'merchant_invoice_id' => $invoice->getIncrementId(),
+                'merchant_invoice_id' => $magento_invoice_id,
                 'invoice_items'       => $items,
                 'issue_on_create'     => true
             ]
