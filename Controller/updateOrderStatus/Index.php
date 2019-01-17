@@ -178,20 +178,22 @@ class Index extends \Magento\Framework\App\Action\Action
 
     protected function _paymentTermAccepted($data)
     {
-        $this->_logger->debug('apruve_paymentTermAccepted');
+        $apruve_order_token = $data->entity->id;
+        $magento_order_increment_id = $data->entity->merchant_order_id;
+        $this->_logger->debug("apruve_paymentTermAccepted webhook called for apruve order $apruve_order_token with magento increment $magento_order_increment_id");
 
         try {
             $this->order->loadByIncrementId($data->entity->merchant_order_id);
             if ($this->order->getEntityId() == null) {
-                $this->_logger->info("Cannot find this entity in Magento2 - possible duplicate webhook - paymentTermAccepted - MerchantOrderId: {$data->entity->merchant_order_id}");
+                $this->_logger->debug("Cannot find this entity in Magento2 - possible duplicate webhook - paymentTermAccepted - MerchantOrderId: {$data->entity->merchant_order_id}");
                 return true; // Quietly die and return a 200 code
             }
             $this->order->setStatus('apruve_buyer_approved');
             return $this->order->save();
         } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
-            $this->_logger->info("Cannot find this entity in Magento2 - possible duplicate webhook - paymentTermAccepted - MerchantOrderId: {$data->entity->merchant_order_id}");
+            $this->_logger->debug("Cannot find this entity in Magento2 - possible duplicate webhook - paymentTermAccepted - MerchantOrderId: {$data->entity->merchant_order_id}");
         } catch (\Exception $e) {
-            $this->_logger->info('Caught exception: ', $e->getMessage(), "\n");
+            $this->_logger->debug('Caught exception: ', $e->getMessage(), "\n");
             return false;
         }
         return true;
