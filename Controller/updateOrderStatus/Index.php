@@ -44,34 +44,40 @@ class Index extends \Magento\Framework\App\Action\Action
 
     public function execute()
     {
-        if (! $this->_validate()) {
-            return;
-        };
+        $this->_logger->debug("Got a webhook");
+        try {
+            if (! $this->_validate()) {
+                return;
+            };
 
-        $data   = $this->_getData();
-        $action = $data->event;
-        $success = false;
+            $data   = $this->_getData();
+            $action = $data->event;
+            $success = false;
 
-        switch ($action) {
-            case 'invoice.closed':
-            case 'invoice.funded':
-                $success = $this->_invoiceFunded($data);
-                break;
-            // cancelled is used in docs, canceled live
-            case 'order.canceled':
-            case 'order.cancelled':
-                $success = $this->_cancelOrder($data);
-                break;
+            switch ($action) {
+                case 'invoice.closed':
+                case 'invoice.funded':
+                    $success = $this->_invoiceFunded($data);
+                    break;
+                // cancelled is used in docs, canceled live
+                case 'order.canceled':
+                case 'order.cancelled':
+                    $success = $this->_cancelOrder($data);
+                    break;
 
-            case 'payment_term.accepted':
-                $success = $this->_paymentTermAccepted($data);
-                break;
-        }
+                case 'payment_term.accepted':
+                    $success = $this->_paymentTermAccepted($data);
+                    break;
+            }
 
-        if ($success) {
-            http_response_code(200);
-        } else {
-            http_response_code(404);
+            if ($success) {
+                http_response_code(200);
+            } else {
+                http_response_code(404);
+            }
+        } catch (\Exception $e) {
+            $this->_logger->debug("Got an exception while processing a webhook: " . $e->getMessage());
+            throw $e;
         }
     }
 
