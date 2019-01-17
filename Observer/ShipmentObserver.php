@@ -147,7 +147,8 @@ class ShipmentObserver implements ObserverInterface
             if (!empty($token) && $this->_order->getId() && $this->_order->getPayment()->getMethod() == self::CODE && $this->_order->canInvoice()) {
                 // Create invoice
                 $invoice = $this->_invoiceService->prepareInvoice($this->_order, $itemQty);
-                $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
+                // Will be captured when there's a funding event
+                $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::NOT_CAPTURE);
                 $invoice->register();
                 $invoice->save(); // Need to save now so we will have an invoice id to send to apruve
 
