@@ -25,7 +25,7 @@ class Toolbar
         }
         $order = $context->getOrder();
         // Only change the toolbar if it's an apruve order
-        if($order->getPayment()->getMethod() != 'apruve') {
+        if ($order->getPayment()->getMethod() != 'apruve') {
             return [$context, $buttonList];
         }
         

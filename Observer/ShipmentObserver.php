@@ -26,7 +26,8 @@ class ShipmentObserver implements ObserverInterface
         \Magento\Framework\DB\Transaction $transaction,
         \Magento\Sales\Model\Service\InvoiceService $invoiceService,
         \Magento\Sales\Api\Data\OrderInterface $order,
-        \Magento\Sales\Api\Data\InvoiceInterface $invoiceInterface
+        \Magento\Sales\Api\Data\InvoiceInterface $invoiceInterface,
+        \Psr\Log\LoggerInterface $logger
     ) {
         $this->method            = $paymentHelper->getMethodInstance(self::CODE);
         $this->_helper           = $helper;
@@ -34,10 +35,12 @@ class ShipmentObserver implements ObserverInterface
         $this->_transaction      = $transaction;
         $this->_order            = $order;
         $this->_invoiceInterface = $invoiceInterface;
+        $this->_logger = $logger;
     }
 
     public function execute(\Magento\Framework\Event\Observer $observer)
     {
+        $this->_logger->debug('Executing shipment observer');
         $this->_shipment = $observer->getEvent()->getShipment();
         $this->_order    = $this->_shipment->getOrder();
         $payment = $this->_order->getPayment();
@@ -56,8 +59,9 @@ class ShipmentObserver implements ObserverInterface
         $itemQty = $this->_getShippedItemQty($this->_shipment);
 
         // Create invoice
-        $this->_invoice = $this->_createInvoiceFromShipment($itemQty);
-        if (! $this->_invoice) {
+        $apruve_invoice_uuid = $this->_createInvoiceFromShipment($itemQty);
+        $this->_logger->debug("Made an apruve invoice with uuid $apruve_invoice_uuid");
+        if (! $apruve_invoice_uuid) {
             throw new \Magento\Framework\Validator\Exception(__('Problem creating invoice in Apruve.'));
         }
 
@@ -67,7 +71,7 @@ class ShipmentObserver implements ObserverInterface
 
         // Create Shipment
 
-        $token  = $payment->getTransactionId();
+        $token  = $payment->getLastTransId();
         $tracks = $this->_shipment->getAllTracks();
         $track  = end($tracks);
         $amount = 0;
@@ -100,10 +104,11 @@ class ShipmentObserver implements ObserverInterface
         $data['merchant_shipment_id'] = $this->_shipment->getIncrementId();
         $data['shipment_items']       = $this->_getShipmentItems($itemQty);
 
-        $response = $this->_processShipment($token, json_encode($data));
+        $response = $this->_processShipment($apruve_invoice_uuid, json_encode($data));
 
         if (! isset($response->id)) {
             $errorMessage = isset($response->errors) ? $response->errors[0]->title : 'Error Creating Shipment';
+            $this->_logger->debug("Error creating shipment in apruve: $errorMessage");
             throw new \Magento\Framework\Validator\Exception(__($errorMessage));
         }
 
@@ -128,13 +133,13 @@ class ShipmentObserver implements ObserverInterface
         if (empty($token)) {
             throw new \Magento\Framework\Validator\Exception(__('Token empty'));
         }
-        if(!$this->_order->getId()) {
+        if (!$this->_order->getId()) {
             throw new \Magento\Framework\Validator\Exception(__('_order->getId() is falsey'));
         }
-        if($this->_order->getPayment()->getMethod() != self::CODE) {
-            throw new \Magento\Framework\Validator\Exception(__('Payment method wrong: ' . $this->_order->getPayment()->getMethod() ));
+        if ($this->_order->getPayment()->getMethod() != self::CODE) {
+            throw new \Magento\Framework\Validator\Exception(__('Payment method wrong: ' . $this->_order->getPayment()->getMethod()));
         }
-        if(!$this->_order->canInvoice()) {
+        if (!$this->_order->canInvoice()) {
             throw new \Magento\Framework\Validator\Exception(__('Cannot invoice. (Did you manually create an invoice in Magento?)'));
         }
 
@@ -142,7 +147,10 @@ class ShipmentObserver implements ObserverInterface
             if (!empty($token) && $this->_order->getId() && $this->_order->getPayment()->getMethod() == self::CODE && $this->_order->canInvoice()) {
                 // Create invoice
                 $invoice = $this->_invoiceService->prepareInvoice($this->_order, $itemQty);
-                $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
+                // Will be captured when there's a funding event
+                $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::NOT_CAPTURE);
+                $invoice->register();
+                $invoice->save(); // Need to save now so we will have an invoice id to send to apruve
 
                 $data = $this->_getInvoiceData($invoice);
 
@@ -153,9 +161,6 @@ class ShipmentObserver implements ObserverInterface
                 }
                 $invoice->setTransactionId($response->id); // Apruve invoice id gets set on the invoice, and vice versa
 
-
-                $invoice->register();
-
                 $transactionSave = $this->_transaction->addObject(
                     $invoice
                 )->addObject(
@@ -163,7 +168,7 @@ class ShipmentObserver implements ObserverInterface
                 );
                 $transactionSave->save();
 
-                return $invoice;
+                return $response->id;
             }
         } catch (\Exception $e) {
             throw new \Magento\Framework\Validator\Exception(__('Apruve invoice creation.' . $e->getMessage()));
@@ -202,6 +207,13 @@ class ShipmentObserver implements ObserverInterface
         /* latest shipment comment */
         // $comment = $this->_getInvoiceComment($invoice);
 
+        $magento_invoice_id = $invoice->getIncrementId();
+        $this->_logger->debug("Preparing to create an apruve invoice from magento invoice $magento_invoice_id");
+
+        if (! isset($magento_invoice_id) || $magento_invoice_id == null) {
+            $this->_logger->debug("ERROR - No magento invoice id for this invoice yet, it will be lost when it is sent to apruve!");
+        }
+
         /* prepare invoice data */
         $data = json_encode([
             'invoice' => [
@@ -210,7 +222,7 @@ class ShipmentObserver implements ObserverInterface
                 'shipping_cents'      => $this->convertPrice($invoice->getBaseShippingAmount()),
                 'tax_cents'           => $this->convertPrice($invoice->getBaseTaxAmount()),
                 // 'merchant_notes' => $comment->getComment(),
-                'merchant_invoice_id' => $invoice->getIncrementId(),
+                'merchant_invoice_id' => $magento_invoice_id,
                 'invoice_items'       => $items,
                 'issue_on_create'     => true
             ]
@@ -343,6 +355,7 @@ class ShipmentObserver implements ObserverInterface
         $apiKey = $this->method->getConfigData('api_key');
         $mode   = $this->method->getConfigData('mode');
         $url    = sprintf("https://%s.apruve.com/api/v4/invoices/%s/shipments", $mode, $token);
+        $this->_logger->debug("Posting a shipment via url: $url");
         $curl   = curl_init();
 
         curl_setopt_array($curl, [
@@ -407,6 +420,8 @@ class ShipmentObserver implements ObserverInterface
         if (! empty($action)) {
             $url = sprintf($url . "/%s", $action);
         }
+
+        $this->_logger->debug("ShipmentObserver::_apruve called. Sending $requestType to $url");
         $curl = curl_init();
         curl_setopt_array($curl, [
             CURLOPT_URL            => $url,
@@ -427,6 +442,7 @@ class ShipmentObserver implements ObserverInterface
         $httpStatus = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         $error      = curl_error($curl);
         curl_close($curl);
+        $this->_logger->debug("Got a response with status code $httpStatus");
         if ($error) {
             $parsed = json_decode($response);
             throw new \Magento\Framework\Exception\LocalizedException(__('Bad Response from Apruve:' . $parsed->error));
