@@ -206,7 +206,8 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         return $this->_storeManager->getStore()->getBaseUrl();
     }
 
-    public function runApruveGetRequest($url) {
+    public function runApruveGetRequest($url)
+    {
         $this->_logger->debug("Running a GET against $url");
         $curl = curl_init();
         curl_setopt_array($curl, [

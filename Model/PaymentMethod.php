@@ -39,12 +39,14 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         \Magento\Framework\Api\AttributeValueFactory $customAttributeFactory,
         \Magento\Payment\Helper\Data $paymentData,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
-        \Magento\Payment\Model\Method\Logger $parentLogger, // We want a different type of logger that we understand
+        \Magento\Payment\Model\Method\Logger $parentLogger,
+        // We want a different type of logger that we understand
         \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
         \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
         array $data = [],
-        DirectoryHelper $directory = null)
-    {
+        DirectoryHelper $directory = null
+    ) {
+    
         // A logger already exists somewhere in the class hierarchy but I can't find it so I'm forcing a new reference
         $this->_logger = \Magento\Framework\App\ObjectManager::getInstance()->get('\Psr\Log\LoggerInterface');
         parent::__construct($context, $registry, $extensionFactory, $customAttributeFactory, $paymentData, $scopeConfig, $parentLogger, $resource, $resourceCollection, $data);
@@ -87,7 +89,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
             // If Reserved Order ID is not correct
             $order = $payment->getOrder();
-            if($response->merchant_order_id != $order->getIncrementId()); {
+            if ($response->merchant_order_id != $order->getIncrementId()) {
+            } {
                 $this->_updateMerchantID($token, $order->getIncrementId());
             }
         } else {
@@ -181,8 +184,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->_order_data['shipping_cents'] = $this->_order->getData('shipping_amount') * 100;
         $this->_order_data['tax_cents'] = $this->_order->getData('tax_amount') * 100;
         $this->_order_data['merchant_notes'] = '';
-        if($newOrder)
-        {
+        if ($newOrder) {
             $this->_order_data['order_items'] = [];
             $this->_order_data['invoice_on_create'] = 'false';
         } else {
@@ -216,14 +218,11 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             $lineItem['vendor'] = '';
             $lineItem['view_product_url'] = $product->getProductUrl();
 
-            if($newOrder)
-            {
+            if ($newOrder) {
                 $this->_order_data['order_items'][] = $lineItem;
-            } else
-            {
+            } else {
                 $this->_order_data['invoice_items'][] = $lineItem;
             }
-
         }
 
         /**Add Discount Item*/
@@ -242,11 +241,9 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             $discountItem['vendor'] = '';
             $discountItem['view_product_url'] = $helper->getStoreUrl();
 
-            if($newOrder)
-            {
+            if ($newOrder) {
                 $this->_order_data['order_items'][] = $discountItem;
-            } else
-            {
+            } else {
                 $this->_order_data['invoice_items'][] = $discountItem;
             }
         }

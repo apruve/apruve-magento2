@@ -134,7 +134,7 @@ class Index extends CSRFAwareAction
             $apruve_invoice_uuid = $data->entity->id;
             $apruve_invoice = $this->helper->runApruveGetRequest($data->entity->links->self); // Get a full invoice
             $magento_invoice_increment_id = $apruve_invoice->merchant_invoice_id;
-            if($magento_invoice_increment_id == null) {
+            if ($magento_invoice_increment_id == null) {
                 $this->_logger->debug("Null magento invoice id returned for apruve invoice $apruve_invoice_uuid. No way to find it in magento");
                 return false;
             }
@@ -162,7 +162,6 @@ class Index extends CSRFAwareAction
                 $this->_logger->debug("ERROR: Invoice $magento_invoice_increment_id cannot be captured in response to apruve funding webhook");
             }
             return $this->transaction->addObject($this->invoice)->save();
-
         } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
             $this->_logger->debug("Cannot find this entity in Magento2 - possible duplicate webhook - invoiceFunded - TransactionId: {$transactionId}");
         } catch (\Exception $e) {

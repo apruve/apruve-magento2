@@ -33,5 +33,7 @@ if (shouldApplyCSRFPatch()) {
         }
     }
 } else {
-    abstract class CSRFAwareAction extends \Magento\Framework\App\Action\Action { }
+    abstract class CSRFAwareAction extends \Magento\Framework\App\Action\Action
+    {
+    }
 }

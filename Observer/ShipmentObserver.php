@@ -133,13 +133,13 @@ class ShipmentObserver implements ObserverInterface
         if (empty($token)) {
             throw new \Magento\Framework\Validator\Exception(__('Token empty'));
         }
-        if(!$this->_order->getId()) {
+        if (!$this->_order->getId()) {
             throw new \Magento\Framework\Validator\Exception(__('_order->getId() is falsey'));
         }
-        if($this->_order->getPayment()->getMethod() != self::CODE) {
-            throw new \Magento\Framework\Validator\Exception(__('Payment method wrong: ' . $this->_order->getPayment()->getMethod() ));
+        if ($this->_order->getPayment()->getMethod() != self::CODE) {
+            throw new \Magento\Framework\Validator\Exception(__('Payment method wrong: ' . $this->_order->getPayment()->getMethod()));
         }
-        if(!$this->_order->canInvoice()) {
+        if (!$this->_order->canInvoice()) {
             throw new \Magento\Framework\Validator\Exception(__('Cannot invoice. (Did you manually create an invoice in Magento?)'));
         }
 
