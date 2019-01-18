@@ -20,7 +20,7 @@ function shouldApplyCSRFPatch()
 }
 
 if (shouldApplyCSRFPatch()) {
-    class CSRFAwareAction extends \Magento\Framework\App\Action\Action implements CsrfAwareActionInterface
+    abstract class CSRFAwareAction extends \Magento\Framework\App\Action\Action implements CsrfAwareActionInterface
     {
         public function createCsrfValidationException(RequestInterface $request)
         {
@@ -33,5 +33,5 @@ if (shouldApplyCSRFPatch()) {
         }
     }
 } else {
-    class CSRFAwareAction extends \Magento\Framework\App\Action\Action { }
+    abstract class CSRFAwareAction extends \Magento\Framework\App\Action\Action { }
 }
