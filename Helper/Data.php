@@ -30,8 +30,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         \Magento\Customer\Model\CustomerFactory $customerFactory,
         \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository,
         \Magento\Sales\Model\Service\OrderService $orderService,
-        \Magento\Payment\Helper\Data $paymentHelper,
-        \Psr\Log\LoggerInterface $logger //log injection
+        \Magento\Payment\Helper\Data $paymentHelper
     ) {
         $this->_storeManager      = $storeManager;
         $this->_product           = $product;
@@ -42,7 +41,6 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         $this->customerRepository = $customerRepository;
         $this->orderService       = $orderService;
         $this->paymentHelper      = $paymentHelper;
-        $this->_logger = $logger;
 
         $this->method = $paymentHelper->getMethodInstance(self::CODE);
         parent::__construct($context);
