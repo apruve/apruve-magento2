@@ -22,12 +22,12 @@ function shouldApplyCSRFPatch()
 if (shouldApplyCSRFPatch()) {
     abstract class CSRFAwareAction extends \Magento\Framework\App\Action\Action implements \Magento\Framework\App\CsrfAwareActionInterface
     {
-        public function createCsrfValidationException(Magento\Framework\App\RequestInterface $request): ?Magento\Framework\App\Request\InvalidRequestException
+        public function createCsrfValidationException(\Magento\Framework\App\RequestInterface $request): ?\Magento\Framework\App\Request\InvalidRequestException
         {
             return null;
         }
 
-        public function validateForCsrf(Magento\Framework\App\RequestInterface $request): ?bool
+        public function validateForCsrf(\Magento\Framework\App\RequestInterface $request): ?bool
         {
             return true;
         }
