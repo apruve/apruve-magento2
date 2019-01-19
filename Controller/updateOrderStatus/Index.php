@@ -2,7 +2,7 @@
 
 namespace Apruve\Payment\Controller\updateOrderStatus;
 
-class Index extends CSRFAwareAction
+class Index extends \Magento\Framework\App\Action\Action
 {
     protected $order;
     protected $payments;

@@ -1,5 +1,5 @@
 # apruve-magento2
-## Only for Magento Version 2.3
+## Only for Magento Version 2.2 and below
 Apruve Magento 2 Integration
 
 This project contains a basic integration between Magento 2 and Apruve. This integration adds Apruve as a payment method in Magento, which will allow your customers to pay with their Apruve line of credit. 
