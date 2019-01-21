@@ -7,7 +7,7 @@
     "MPL-2.0"
   ],
   "require": {
-    "php": "~5.6.0|~7.0.0|~7.1"
+    "php": "~5.6.5|~7.0|~7.1|~7.2"
   },
   "support": {
     "email": "support@apruve.com",
