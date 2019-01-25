@@ -7,14 +7,6 @@
      <label data-bind="attr: {'for': getCode()}" class="label"><span data-bind="text: getTitle()"></span></label>
 </div>
 <div class="payment-method-content">
-        <div class="apruve-loading-mask loading-mask" data-role="loader"
-            style="display: block;">
-            <div class="loader">
-                <img alt="Loading..." src="data:image/gif;base64,R0lGODlh2gCVAPMAAP///7Ozs9bW1uHh4bq6uoGBgTQ0NAEBARsbG8TExJeXl1RUVAAAAAAAAAAAAAAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQFBQAAACwAAAAA2gCVAEAE/xDISau9OOvNu/9gKI5kaZ5oqq5s675wLM90bd94ru987//AoHBILBqPyKRyyfwYEIiC5ECVBK6DpnYbu3oDhCx3vEx8CRtBYDIgeAXkuHYAp7jR8rx+z+/7/4CBgoOEhYaHiImKi4yNjo+QkZKTlJWWl5iZmpucgAFSFFQHFGZrnY4LBqoGC3UbZ2Knp66ykG4BdV4Tt7S1vr/AwcLDxMXGx8jJysvMzc7P0NHS09TV1tfY2drb3N3e3+Dh4uM+CgcK5E1QCKYAortXvek6AaroEwtQoBQD7W1v83goUNUuTUAeBRIqTAjiy5UwB3OowdXhFphYEWn0ozihFBxdAOa8YMzY41YskBJKkVzJsqXLlzBjypxJs6bNmzhz6tzJs6fPn0CDCh1KtKjRo0iTKl3KtKnTp1CjSp1KtarVq1izat3KtavXr0QQHEBQQcDIqQOgLAhVRcJGPFcLQDEw4R2AiXCxBliX5d3EBBQmnj06UNUCUwkQ3MtQ6grgpwFSreowUR7UAfu+JlCwkOEHhw+Vbu6cGawFyxcqo7WYV0PjAI+ZTrw4IcDZv4HdDG660RRIvFqBW7nCBqVVxxSM392NtQ1z09CjS59Ovbr169iza9/Ovbv37+DDix9Pvrz58+jTq3caAQAh+QQFBQAAACxdADoAGAAXAEAEdxDISSsKdYpSSDVGBihHIhFBqmJiK4KGJyH0hBxHURGc6f7AIEVhqU0MuNYCRATQEAAB7tAEBDgcxUDI7XqFvu/PgAhRClUKqAiVkA7tigK0sBkLuPhr7awtcGYAPFgCEgIGLEIbWDpiE4lCAygrkEGSlJWOmpoRACH5BAUFAAAALF4AOgAdAA4AQAR4EMhJZzA1zxGIoEpRBBoyKcihFplYfJIhTwZiapMQBDBOLT2cgFCRYSYLmw8kIgKMgIENQaIMJIndLrGkqFTU7s+wyFSXovNzJgnYjkuCi8YGvMUSwXyNKdjKEwUqCjo7BFdRBVw+CQZfB3ADBFpOXYIHLD5BeBURACH5BAUFAAAALGQAOgAZABEAQARoEMgJUkk0a5lCEFpggICInFuaHWyLKF4wTEU9LYahqHxWzJoBiWaj5FQED6lWkOQMvajkdIJKUy3XTqMobCffUABDbE6OKYGHUJYocgveICZhOq2UUyDz6S2oCHETe1EKKFeIiRNZWREAIfkEBQUAAAAsawA6ABIAGABABGJQKAGqvRinMuwyoJJlSGkagaJaRUuMcCwDR30gYqXmegvvlVaBMsOAQItXEWA6zYbLiwJhKwBSGQIxA6wIhL8VgAAOiwItHkABmlGOhmUoSsc0m/VnzbpMGGwHcVEFNQEAEQAh+QQFBQAAACxrADoAEgAeAEAEgnCQAaq9GItgRfkFkWVGaS7ZcKzKCASwFShK4t7cPSI8YuQ3w4qCgQFfNJexQmvpRqCP4GkxnY4joq5wsL0MvRtiVRgRAqKLd7S00LCyGCDRxMXoiiNBqhsook43CR9pVIYjVlaHhgo8iwILPQgoGQsrBhhgLlwHCIsBKweLAAWBFxEAIfkEBQUAAAAsbAA7ABEAHwBABHoQyAnEoDiDFHpIWogd5IQghjgJHaG+8GTMqUQeWQAP7ct+lN8l9BPEJIWkMhkKzBSiwmlBgdZulBNCozhAjxiODkboGF+e4UsNGJTNIk+AwCaCkcuCAhTK6/l3GjQGVCEKWxMLNFBYAFpjGY0ABichkgALlRkIB4gwEQAh+QQFBQAAACxlAEgAGAASAEAEahDISSsIOJNhbTCCJBRkQQBKURmI0b2w9yLHoQJIPi2GocRASUbDCUpKpBDFUFvgdICea1b7SXKI1dT4Gmq44FiCdApPBqmSVZKwdXoVQlKiqB04WHrP2SnUsldQElIdNVtPgBNrQQGJQREAIfkEBQUAAAAsXwBMAB0ADgBABHMQyEmrBeJag9A04KQUBXEZR3oYiSYlxSANRGBnVWAtxuJqhVThN6nZCDKAQkhZdIYgg4RUwBE5CJ0kShkNfwIfUSK4WQII1WH8stlawRRCQZ6fSfSJoCZLTtAdWyEABFRsAB1SgooYhkQdYosVBFaHH4cRACH5BAUFAAAALF0ASQAZABEAQARmUKFDK7g4a426Cdi3CUGQbGiWFGeqDYUra4phLFihY0MZSBXLTGbodIZIm+GiiwFIAYLLpmlqBINgEMntojoK72VhROBkJE3gqKECrADfQLawhd+7C6EkmC5zeRcJJS53GAoFhhkRACH5BAUFAAAALF4AQgARABgAQARbMJxTgL04642NUZhSFAEQnFgxVVymeO02FsJ1lsY0GUns/0APrAa0zAiW20ZQwhACBNUEAfopELpDUcAqer9gwkJoaL08i8ug0PtxR0mUJgqPNzOju0n+GxAGEQAh+QQFBQAAACxdADwADgAdAEAEbRDICVShc6GNlsBgKEpEEHwichzXOFpFrAyuNKDjegQYYmCG1SK0UQANyOSvRoglQIIYgZIw4TClAE20Wo4KK0RNocNxDDxAgoUJGDhi17a9UCJBgbq9NkmHojExIE0yTxJaciZ+UCZTIyaGABEAOw==">
-                <p>Please wait...</p>
-            </div>
-        </div>
-        
      <!-- ko foreach: getRegion('messages') -->
      <!-- ko template: getTemplate() --><!-- /ko -->
      <!--/ko-->
@@ -23,7 +15,6 @@
          <!-- ko template: getTemplate() --><!-- /ko -->
          <!--/ko-->
      </div>
-     <div id="apruveDiv"></div>
      <div class="checkout-agreements-block">
          <!-- ko foreach: $parent.getRegion('before-place-order') -->
              <!-- ko template: getTemplate() --><!-- /ko -->
