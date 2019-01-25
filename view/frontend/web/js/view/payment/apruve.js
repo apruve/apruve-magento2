@@ -3,7 +3,7 @@ var apruve;
 define([
     'jquery',
 ], function ($) {
-    var s = window.checkoutConfig.payment.apruve.js_endpoint + '/js/v4/apruve.js?display=compact';
+    var s = window.checkoutConfig.payment.apruve.js_endpoint + '/js/v4/apruve.js';
 
     var load = function () {
         require.undef(s);
@@ -35,12 +35,6 @@ define([
             var secureHash = window.checkoutConfig.payment.apruve.secure_hash;
 
             apruve.setOrder(order, secureHash);
-            apruve.registerApruveCallback(apruve.APRUVE_COMPLETE_EVENT, function (orderId) {
-                $('#apruve-order-id').val(orderId)
-                $('.apruve-checkout').addClass('visible');
-            });
-
-            $('.loading-mask').hide();
             preparePONumber();
         });
     }
