@@ -43,13 +43,15 @@ define(
                 return jQuery('#apruve-order-id').val();
             },
 
-            placeOrder: function(parent) {
+            placeOrder: function() {
+                var self = this;
+                var context = this._super;
+                var default_arguements = arguments;
                 apruve.startCheckout();
 
                 apruve.registerApruveCallback(apruve.APRUVE_COMPLETE_EVENT, function (orderId) {
                     jQuery('#apruve-order-id').val(orderId);
-                    alert('APRUVE_COMPLETE_EVENT');
-                    parent.placeOrder;
+                    context.apply(self, default_arguements);
                 });
             }
         });
