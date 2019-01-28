@@ -46,12 +46,12 @@ define(
             placeOrder: function() {
                 var self = this;
                 var context = this._super;
-                var default_arguements = arguments;
+                var default_arguments = arguments;
                 apruve.startCheckout();
 
                 apruve.registerApruveCallback(apruve.APRUVE_COMPLETE_EVENT, function (orderId) {
                     jQuery('#apruve-order-id').val(orderId);
-                    context.apply(self, default_arguements);
+                    context.apply(self, default_arguments);
                 });
             }
         });
