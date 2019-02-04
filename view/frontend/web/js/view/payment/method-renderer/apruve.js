@@ -1,3 +1,5 @@
+var apruve;
+
 define(
     [
         'Apruve_Payment/js/view/payment/apruve',
@@ -40,6 +42,18 @@ define(
             getApruveOrderId: function () {
                 return jQuery('#apruve-order-id').val();
             },
+
+            placeOrder: function() {
+                var self = this;
+                var context = this._super;
+                var default_arguments = arguments;
+                apruve.startCheckout();
+
+                apruve.registerApruveCallback(apruve.APRUVE_COMPLETE_EVENT, function (orderId) {
+                    jQuery('#apruve-order-id').val(orderId);
+                    context.apply(self, default_arguments);
+                });
+            }
         });
     }
 );
