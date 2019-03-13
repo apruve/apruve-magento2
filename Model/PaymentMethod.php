@@ -315,7 +315,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             return json_decode($response);
         }
         $this->_logger->debug("Got a bad response with status code $httpStatus, throwing exception");
-        throw new \Magento\Framework\Exception\LocalizedException('Could not complete operation with object ' . print_r($response));
+        throw new \Magento\Framework\Exception\LocalizedException('Could not complete operation with object ' . $response);
     }
 
     protected function _getMerchantKey()
