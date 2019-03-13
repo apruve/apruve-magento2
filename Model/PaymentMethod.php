@@ -46,7 +46,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         array $data = [],
         DirectoryHelper $directory = null
     ) {
-    
+
         // A logger already exists somewhere in the class hierarchy but I can't find it so I'm forcing a new reference
         $this->_logger = \Magento\Framework\App\ObjectManager::getInstance()->get('\Psr\Log\LoggerInterface');
         parent::__construct($context, $registry, $extensionFactory, $customAttributeFactory, $paymentData, $scopeConfig, $parentLogger, $resource, $resourceCollection, $data);
@@ -315,7 +315,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             return json_decode($response);
         }
         $this->_logger->debug("Got a bad response with status code $httpStatus, throwing exception");
-        throw new \Magento\Framework\Exception\LocalizedException('Could not complete operation with object ' . json_decode($response));
+        throw new \Magento\Framework\Exception\LocalizedException('Could not complete operation with object ' . print_r($response));
     }
 
     protected function _getMerchantKey()
