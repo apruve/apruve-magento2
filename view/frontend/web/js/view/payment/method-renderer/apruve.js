@@ -1,5 +1,3 @@
-var apruve;
-
 define(
     [
         'Apruve_Payment/js/view/payment/apruve',
@@ -47,6 +45,9 @@ define(
                 var self = this;
                 var context = this._super;
                 var default_arguments = arguments;
+
+                var apruve = window.apruve;
+
                 apruve.startCheckout();
 
                 apruve.registerApruveCallback(apruve.APRUVE_COMPLETE_EVENT, function (orderId) {
