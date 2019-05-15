@@ -1,5 +1,3 @@
-var apruve;
-
 define([
     'jquery',
 ], function ($) {
