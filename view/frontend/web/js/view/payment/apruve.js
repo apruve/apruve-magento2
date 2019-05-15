@@ -29,12 +29,13 @@ define([
     }
 
     var initialize = function () {
+        window.apruve = null;
         $.getScript(s, function () {
             var merchantId = window.checkoutConfig.payment.apruve.merchant_id;
             var order = window.checkoutConfig.payment.apruve.order;
             var secureHash = window.checkoutConfig.payment.apruve.secure_hash;
 
-            apruve.setOrder(order, secureHash);
+            window.apruve.setOrder(order, secureHash);
             preparePONumber();
         });
     }
