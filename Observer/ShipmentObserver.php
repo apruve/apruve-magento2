@@ -233,7 +233,7 @@ class ShipmentObserver implements ObserverInterface
 
     protected function convertPrice($price)
     {
-        return $price * 100;
+        return (int)($price * 100);
     }
 
     public function getCurrency()
