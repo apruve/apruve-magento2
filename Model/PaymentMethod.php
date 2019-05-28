@@ -336,7 +336,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
     public function cancel(\Magento\Payment\Model\InfoInterface $payment)
     {
-        $token = $payment->getParentTransactionId();
+        $token  = $payment->getLastTransId();
         if ($token) {
             try {
                 $response = $this->_apruve(self::CANCEL_ACTION, $token);
