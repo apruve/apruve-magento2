@@ -338,33 +338,40 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
     public function cancel(\Magento\Payment\Model\InfoInterface $payment)
     {
-        $token = $payment->getParentTransactionId();
-        if ($token) {
-            try {
-                $response = $this->_apruve(self::CANCEL_ACTION, $token);
-            } catch (\Exception $e) {
-            }
-        }
-
-        return parent::cancel($payment);
-    }
-
-    public function void(\Magento\Payment\Model\InfoInterface $payment)
-    {
-        $this->_logger->debug("Apruve PaymentMethod::cancel/void called");
+        $this->_logger->debug("Apruve PaymentMethod::cancel called");
 
         $token = $payment->getLastTransId();
         if (!empty($token)) {
             try {
                 $response = $this->_apruve(self::CANCEL_ACTION, $token);
             } catch (\Exception $e) {
-                $this->_logger->debug("Apruve Exception trying to cancel and order - token: $token");
+                $this->_logger->debug("Apruve Exception trying to cancel order - token: $token");
             }
         } else {
             $this->_logger->debug("Apruve order trying to cancel, but there is not transaction ID: $payment");
         }
 
         $this->_logger->debug("Apruve PaymentMethod::cancel super");
+        return parent::cancel($payment);
+    }
+
+
+    public function void(\Magento\Payment\Model\InfoInterface $payment)
+    {
+        $this->_logger->debug("Apruve PaymentMethod::void called");
+
+        $token = $payment->getLastTransId();
+        if (!empty($token)) {
+            try {
+                $response = $this->_apruve(self::CANCEL_ACTION, $token);
+            } catch (\Exception $e) {
+                $this->_logger->debug("Apruve Exception trying to void order - token: $token");
+            }
+        } else {
+            $this->_logger->debug("Apruve order trying to void, but there is not transaction ID: $payment");
+        }
+
+        $this->_logger->debug("Apruve PaymentMethod::void super");
         return parent::void($payment);
     }
 
