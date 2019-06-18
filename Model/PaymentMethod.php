@@ -19,7 +19,9 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     protected $_canAuthorize = true;
     protected $_canCapture = true;
     protected $_canCapturePartial = false;
-    protected $_canVoid = false;
+    protected $_canVoid = true;
+    protected $_canCancel = true;
+    protected $_canCancelInvoice = true;
     protected $_canRefund = false;
     protected $_canRefundInvoicePartial = false;
     protected $_isInitializeNeeded = false;
@@ -336,7 +338,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
     public function cancel(\Magento\Payment\Model\InfoInterface $payment)
     {
-        $token  = $payment->getLastTransId();
+        $token = $payment->getParentTransactionId();
         if ($token) {
             try {
                 $response = $this->_apruve(self::CANCEL_ACTION, $token);
@@ -345,6 +347,25 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         }
 
         return parent::cancel($payment);
+    }
+
+    public function void(\Magento\Payment\Model\InfoInterface $payment)
+    {
+        $this->_logger->debug("Apruve PaymentMethod::cancel/void called");
+
+        $token = $payment->getLastTransId();
+        if (!empty($token)) {
+            try {
+                $response = $this->_apruve(self::CANCEL_ACTION, $token);
+            } catch (\Exception $e) {
+                $this->_logger->debug("Apruve Exception trying to cancel and order - token: $token");
+            }
+        } else {
+            $this->_logger->debug("Apruve order trying to cancel, but there is not transaction ID: $payment");
+        }
+
+        $this->_logger->debug("Apruve PaymentMethod::cancel super");
+        return parent::void($payment);
     }
 
     public function getConfig()
