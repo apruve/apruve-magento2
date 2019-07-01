@@ -5,4 +5,7 @@
     <event name="sales_order_shipment_save_after">
         <observer name="ShipmentObserver" instance="Apruve\Payment\Observer\ShipmentObserver"/>
     </event>
+    <event name="sales_order_invoice_save_after">
+        <observer name="InvoiceObserver" instance="Apruve\Payment\Observer\InvoiceObserver"/>
+    </event>
 </config>
